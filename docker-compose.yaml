@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # API Enhancement A2A Service
+  api_enhancement_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.api_enhancement
+    container_name: api_enhancement_service
+    ports:
+      - "8001:8001"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./workflows:/app/workflows:ro
+      - ./config:/app/config:ro
+      - ./core:/app/core:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - agentic_network
+    depends_on:
+      - postgres
+
+  # PostgreSQL for workflow checkpointing and state management
+  postgres:
+    image: postgres:15-alpine
+    container_name: agentic_postgres
+    environment:
+      - POSTGRES_DB=agentic_workflows
+      - POSTGRES_USER=agentic_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-agentic_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deployments/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentic_user -d agentic_workflows"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - agentic_network
+
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    container_name: agentic_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - agentic_network
+
+  # API Gateway / Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: agentic_gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployments/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployments/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api_enhancement_service
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - agentic_network
+
+  # Monitoring and Logging (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agentic_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - agentic_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  agentic_network:
+    driver: bridge
