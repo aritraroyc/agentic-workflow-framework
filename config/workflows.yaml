@@ -25,32 +25,37 @@
 # - metadata: Additional custom metadata
 
 workflows:
-  # Example embedded workflow (to be implemented in Phase 5)
-  # - name: api_development
-  #   workflow_type: api_development
-  #   description: "Develops RESTful APIs from stories"
-  #   version: "1.0.0"
-  #   deployment_mode: embedded
-  #   module_path: workflows.children.api_development.workflow
-  #   dependencies:
-  #     - langgraph
-  #     - langchain
-  #   tags:
-  #     - api
-  #     - development
-  #   is_active: true
-  #   author: "AI Assistant"
-  #   input_schema:
-  #     type: object
-  #     properties:
-  #       api_requirements: { type: string }
-  #       preferred_framework: { type: string }
-  #   output_schema:
-  #     type: object
-  #     properties:
-  #       code: { type: string }
-  #       tests: { type: string }
-  #       documentation: { type: string }
+  # API Development workflow (implemented in Phase 5)
+  - name: api_development
+    workflow_type: api_development
+    description: "Develops complete RESTful APIs from requirements including design, code generation, testing, and documentation"
+    version: "1.0.0"
+    deployment_mode: embedded
+    module_path: workflows.children.api_development.workflow
+    dependencies:
+      - langgraph
+      - langchain
+      - langchain-anthropic
+    tags:
+      - api
+      - development
+      - rest
+      - fastapi
+    is_active: true
+    author: "Framework Team"
+    input_schema:
+      type: object
+      properties:
+        api_requirements: { type: string }
+        preferred_framework: { type: string }
+    output_schema:
+      type: object
+      properties:
+        api_plan: { type: object }
+        api_design: { type: object }
+        code_output: { type: object }
+        test_output: { type: object }
+        docs_output: { type: object }
 
   # Example A2A workflow (to be deployed as Docker service)
   # - name: api_enhancement

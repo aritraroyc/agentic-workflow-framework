@@ -22,6 +22,8 @@ from workflows.parent.state import (
     WorkflowTask,
     WorkflowExecutionResult,
 )
+from workflows.registry.registry import WorkflowRegistry
+from workflows.registry.invoker import WorkflowInvoker
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +45,26 @@ class WorkflowCoordinator:
         max_retries: Number of retries for failed tasks (default: 3)
     """
 
-    def __init__(self, timeout_seconds: float = 3600, max_retries: int = 3):
+    def __init__(
+        self,
+        timeout_seconds: float = 3600,
+        max_retries: int = 3,
+        registry: Optional[WorkflowRegistry] = None,
+        invoker: Optional[WorkflowInvoker] = None,
+    ):
         """
         Initialize the coordinator.
 
         Args:
             timeout_seconds: Maximum execution time for all tasks
             max_retries: Maximum number of retries per failed task
+            registry: WorkflowRegistry for looking up workflow metadata
+            invoker: WorkflowInvoker for executing workflows
         """
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
+        self.registry = registry
+        self.invoker = invoker or WorkflowInvoker(default_timeout=timeout_seconds, default_retries=max_retries)
         logger.info(
             f"WorkflowCoordinator initialized (timeout={timeout_seconds}s, retries={max_retries})"
         )
@@ -63,6 +75,7 @@ class WorkflowCoordinator:
         execution_strategy: str,
         execution_order: List[str],
         task_dependencies: Dict[str, List[str]],
+        parent_state: Optional[EnhancedWorkflowState] = None,
     ) -> Dict[str, WorkflowExecutionResult]:
         """
         Execute workflow tasks according to strategy.
@@ -72,12 +85,16 @@ class WorkflowCoordinator:
             execution_strategy: Strategy (sequential, parallel, hybrid)
             execution_order: Preferred execution order
             task_dependencies: Task dependency mapping
+            parent_state: Parent workflow state to pass to child workflows
 
         Returns:
             Dictionary mapping task IDs to execution results
         """
         execution_results: Dict[str, WorkflowExecutionResult] = {}
         start_time = time.time()
+
+        # Store parent state for use in _execute_single_workflow
+        self._parent_state = parent_state or {}
 
         try:
             logger.info(
@@ -419,38 +436,76 @@ class WorkflowCoordinator:
         self, task: WorkflowTask
     ) -> WorkflowExecutionResult:
         """
-        Simulate workflow execution (placeholder for real execution).
+        Execute a single workflow task using the WorkflowInvoker.
 
-        In a real implementation, this would invoke the actual workflow
-        (embedded or A2A service).
+        This method looks up the workflow metadata from the registry and invokes
+        it with the parent state. If the registry is not available, falls back
+        to simulation.
 
         Args:
             task: Workflow task to execute
 
         Returns:
-            Simulated execution result
+            Workflow execution result
         """
-        # Simulate some work
-        await asyncio.sleep(0.1)
+        workflow_name = task["workflow_name"]
+        parent_state = getattr(self, "_parent_state", {})
 
-        # Simulate success
-        return {
-            "workflow_name": task["workflow_name"],
-            "status": "success",
-            "output": {
-                "message": f"Simulated execution of {task['workflow_name']}",
-                "parameters": task.get("parameters", {}),
-            },
-            "artifacts": [
-                f"artifact_{task['task_id']}_1.json",
-                f"artifact_{task['task_id']}_2.json",
-            ],
-            "execution_time_seconds": 0.1,
-            "metadata": {
-                "executed_at": datetime.now().isoformat(),
-                "workflow_type": task.get("workflow_type", "unknown"),
-            },
-        }
+        # If no registry, fall back to simulation
+        if not self.registry:
+            logger.warning(
+                f"No registry available for {workflow_name}, using simulated execution"
+            )
+            await asyncio.sleep(0.1)
+            return {
+                "workflow_name": workflow_name,
+                "status": "success",
+                "output": {
+                    "message": f"Simulated execution of {workflow_name}",
+                    "parameters": task.get("parameters", {}),
+                },
+                "artifacts": [
+                    f"artifact_{task['task_id']}_1.json",
+                    f"artifact_{task['task_id']}_2.json",
+                ],
+                "execution_time_seconds": 0.1,
+                "metadata": {
+                    "executed_at": datetime.now().isoformat(),
+                    "workflow_type": task.get("workflow_type", "unknown"),
+                },
+            }
+
+        try:
+            # Look up workflow metadata from registry
+            workflow_metadata = self.registry.get(workflow_name)
+            if not workflow_metadata:
+                raise ValueError(f"Workflow {workflow_name} not found in registry")
+
+            logger.debug(f"Invoking workflow {workflow_name} with parent state")
+
+            # Invoke the workflow with timeout and retries
+            result = await self.invoker.invoke(
+                workflow_metadata,
+                parent_state,
+                timeout=task.get("timeout"),
+                max_retries=task.get("max_retries"),
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(
+                f"Error invoking workflow {workflow_name}: {str(e)}", exc_info=True
+            )
+            return {
+                "workflow_name": workflow_name,
+                "status": "failure",
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "execution_time_seconds": 0.0,
+                "output": {},
+                "artifacts": [],
+            }
 
     def _create_timeout_results(
         self, workflow_tasks: List[WorkflowTask]
