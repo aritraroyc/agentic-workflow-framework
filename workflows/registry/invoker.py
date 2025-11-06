@@ -319,13 +319,15 @@ class WorkflowInvoker:
             workflow_class_name = self._infer_workflow_class_name(workflow_name)
 
             if not hasattr(module, workflow_class_name):
-                # Try to find any class that looks like a workflow
+                # Try to find any class that looks like a workflow (skip abstract classes)
+                import inspect
                 for attr_name in dir(module):
                     attr = getattr(module, attr_name)
                     if (
                         isinstance(attr, type)
-                        and "Workflow" in attr_name
+                        and attr_name.endswith("Workflow")  # Must end with "Workflow" (not "WorkflowState")
                         and attr_name[0].isupper()
+                        and not inspect.isabstract(attr)  # Skip abstract classes like BaseChildWorkflow
                     ):
                         workflow_class_name = attr_name
                         break
