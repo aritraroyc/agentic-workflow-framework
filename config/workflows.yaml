@@ -1,0 +1,69 @@
+# Workflow Registry Configuration
+# This file defines all available workflows that can be executed by the agentic framework.
+#
+# Each workflow entry should include:
+# - name: Unique identifier for the workflow
+# - workflow_type: Category/type of the workflow (e.g., api_development, ui_development)
+# - description: Human-readable description
+# - version: Semantic version (e.g., 1.0.0)
+# - deployment_mode: Either 'embedded' (local Python) or 'a2a' (remote service)
+#
+# For embedded workflows, include:
+# - module_path: Python module path (e.g., workflows.children.api_development)
+#
+# For A2A workflows, include:
+# - service_url: Base URL of the remote service
+# - service_port: (Optional) Port number
+#
+# Optional fields:
+# - input_schema: JSON schema for input validation
+# - output_schema: JSON schema for output validation
+# - dependencies: List of required packages or services
+# - tags: List of tags for categorization
+# - is_active: Whether the workflow is available (default: true)
+# - author: Creator of the workflow
+# - metadata: Additional custom metadata
+
+workflows:
+  # Example embedded workflow (to be implemented in Phase 5)
+  # - name: api_development
+  #   workflow_type: api_development
+  #   description: "Develops RESTful APIs from stories"
+  #   version: "1.0.0"
+  #   deployment_mode: embedded
+  #   module_path: workflows.children.api_development.workflow
+  #   dependencies:
+  #     - langgraph
+  #     - langchain
+  #   tags:
+  #     - api
+  #     - development
+  #   is_active: true
+  #   author: "AI Assistant"
+  #   input_schema:
+  #     type: object
+  #     properties:
+  #       api_requirements: { type: string }
+  #       preferred_framework: { type: string }
+  #   output_schema:
+  #     type: object
+  #     properties:
+  #       code: { type: string }
+  #       tests: { type: string }
+  #       documentation: { type: string }
+
+  # Example A2A workflow (to be deployed as Docker service)
+  # - name: api_enhancement
+  #   workflow_type: api_enhancement
+  #   description: "Enhances existing APIs"
+  #   version: "1.0.0"
+  #   deployment_mode: a2a
+  #   service_url: http://localhost
+  #   service_port: 8001
+  #   dependencies:
+  #     - docker
+  #   tags:
+  #     - api
+  #     - enhancement
+  #   is_active: true
+  #   author: "AI Assistant"
