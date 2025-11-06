@@ -38,9 +38,9 @@ def load_workflows_from_yaml(config_path: str) -> List[Dict[str, Any]]:
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
     with open(config_path, "r") as f:
-        config = yaml.safe_load(f) or {}
+        config: Dict[str, Any] = yaml.safe_load(f) or {}
 
-    workflows = config.get("workflows", [])
+    workflows: List[Dict[str, Any]] = config.get("workflows", [])
     logger.info(f"Loaded {len(workflows)} workflows from {config_path}")
     return workflows
 
@@ -164,7 +164,7 @@ def discover_embedded_workflows(
         logger.warning(f"Base path not found: {base_path}")
         return []
 
-    discovered = []
+    discovered: List[str] = []
     for item in os.listdir(base_path):
         item_path = os.path.join(base_path, item)
         # Check if it's a directory with __init__.py
@@ -190,7 +190,7 @@ def validate_registry(registry: WorkflowRegistry) -> Dict[str, Any]:
     Raises:
         ValueError: If validation fails
     """
-    results = {
+    results: Dict[str, Any] = {
         "valid": True,
         "total_workflows": len(registry),
         "embedded_workflows": len(registry.list_by_deployment_mode(DeploymentMode.EMBEDDED)),
@@ -204,7 +204,8 @@ def validate_registry(registry: WorkflowRegistry) -> Dict[str, Any]:
         # Check that embedded workflows have module_path
         if workflow.deployment_mode == DeploymentMode.EMBEDDED:
             if not workflow.module_path:
-                results["errors"].append(
+                error_list: List[str] = results["errors"]  # type: ignore
+                error_list.append(
                     f"Embedded workflow '{workflow.name}' missing module_path"
                 )
                 results["valid"] = False
@@ -212,7 +213,8 @@ def validate_registry(registry: WorkflowRegistry) -> Dict[str, Any]:
         # Check that A2A workflows have service_url
         if workflow.deployment_mode == DeploymentMode.A2A:
             if not workflow.service_url:
-                results["errors"].append(
+                error_list = results["errors"]  # type: ignore
+                error_list.append(
                     f"A2A workflow '{workflow.name}' missing service_url"
                 )
                 results["valid"] = False
