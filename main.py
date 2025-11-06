@@ -24,8 +24,6 @@ import argparse
 
 from workflows.parent.graph import create_enhanced_parent_workflow
 from workflows.registry.loader import load_registry, validate_registry
-from workflows.registry.invoker import WorkflowInvoker
-from workflows.parent.agents.coordinator import WorkflowCoordinator
 
 # Configure logging
 logging.basicConfig(
@@ -80,13 +78,12 @@ def setup_registry() -> Any:
     return registry
 
 
-async def run_workflow(story: str, registry: Any) -> Dict[str, Any]:
+async def run_workflow(story: str) -> Dict[str, Any]:
     """
     Execute the complete parent workflow.
 
     Args:
         story: Story content
-        registry: WorkflowRegistry instance
 
     Returns:
         Workflow execution results
@@ -95,9 +92,6 @@ async def run_workflow(story: str, registry: Any) -> Dict[str, Any]:
         logger.info("=" * 80)
         logger.info("STARTING AGENTIC WORKFLOW EXECUTION")
         logger.info("=" * 80)
-
-        # Create invoker with registry
-        invoker = WorkflowInvoker(default_timeout=3600, default_retries=3)
 
         # Create parent workflow graph
         logger.info("Initializing parent workflow...")
@@ -277,11 +271,11 @@ async def main():
 
         logger.info(f"Story loaded ({len(story)} characters)")
 
-        # Setup registry
-        registry = setup_registry()
+        # Setup registry (validates configuration)
+        setup_registry()
 
         # Run workflow
-        result_state = await run_workflow(story, registry)
+        result_state = await run_workflow(story)
 
         # Save results
         save_results(result_state, args.output_dir)
