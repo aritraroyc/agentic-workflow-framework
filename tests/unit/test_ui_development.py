@@ -57,10 +57,19 @@ class TestUIDevWorkflow:
     async def test_validate_input_with_story(self, workflow):
         """Test input validation with valid story."""
         state: EnhancedWorkflowState = {
-            "story": "# UI Development Story\n\nBuild a React dashboard",
+            "input_story": "# UI Development Story\n\nBuild a React dashboard",
             "story_requirements": {},
             "story_type": "ui_development",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "ui_development"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -74,7 +83,7 @@ class TestUIDevWorkflow:
     async def test_validate_input_without_story(self, workflow):
         """Test input validation without story."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "ui_development",
             "preprocessor_output": {},
@@ -91,13 +100,22 @@ class TestUIDevWorkflow:
     async def test_execute_with_valid_state(self, workflow):
         """Test workflow execution with valid state."""
         state: EnhancedWorkflowState = {
-            "story": "# Customer Dashboard\nBuild a React dashboard",
+            "input_story": "# Customer Dashboard\nBuild a React dashboard",
             "story_requirements": {
                 "title": "Customer Dashboard",
                 "description": "Customer dashboard with charts and tables",
             },
             "story_type": "ui_development",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "ui_development"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -114,7 +132,7 @@ class TestUIDevWorkflow:
     async def test_execute_with_invalid_state(self, workflow):
         """Test workflow execution with invalid state."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "ui_development",
             "preprocessor_output": {},

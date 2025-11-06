@@ -116,8 +116,12 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
         Returns:
             True if state is valid for enhancement, False otherwise
         """
-        if not state.get("story"):
-            logger.warning("UI Enhancement: Missing story")
+        if not state.get("input_story"):
+            logger.warning("UI Enhancement: Missing input_story from parent state")
+            return False
+
+        if not state.get("preprocessor_output"):
+            logger.warning("UI Enhancement: Missing preprocessor_output from parent state")
             return False
 
         logger.info("UI Enhancement input validation passed")
@@ -131,23 +135,34 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
             state: The parent workflow state
 
         Returns:
-            Dictionary with execution results
+            Dict with status, output, artifacts, and execution_time_seconds
         """
+        import time
+        start_time = time.time()
+
         logger.info("Executing UI Enhancement workflow")
 
         try:
             if not await self.validate_input(state):
+                execution_time = time.time() - start_time
                 return {
                     "status": "failure",
                     "error": "Invalid input state for UI enhancement",
                     "output": {},
+                    "artifacts": [],
+                    "execution_time_seconds": execution_time,
                 }
+
+            # Extract input story and requirements from parent state
+            input_story = state.get("input_story", "")
+            preprocessor_output = state.get("preprocessor_output", {})
+            story_requirements = preprocessor_output.get("extracted_data", {})
 
             # Create initial internal state
             internal_state = create_initial_ui_enhancement_state(
-                input_story=state.get("story", ""),
-                story_requirements=state.get("story_requirements", {}),
-                parent_context={"parent_state": state},
+                input_story=input_story,
+                story_requirements=story_requirements,
+                parent_context=state,
             )
 
             # Get the compiled graph
@@ -156,27 +171,38 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
             # Execute the graph
             final_state = await graph.ainvoke(internal_state)
 
-            logger.info("UI Enhancement workflow completed")
+            # Collect artifacts
+            artifacts = final_state.get("all_artifacts", [])
+            execution_time = time.time() - start_time
+
+            logger.info(
+                f"UI Enhancement workflow completed in {execution_time:.2f}s "
+                f"with status: {final_state.get('status')}"
+            )
 
             return {
-                "status": final_state.get("status", "success"),
+                "status": "success" if final_state.get("status") == "success" else "partial",
                 "output": {
                     "enhancement_analysis": final_state.get("enhancement_analysis"),
                     "enhancement_design": final_state.get("enhancement_design"),
                     "enhancement_code": final_state.get("enhancement_code"),
                     "enhancement_tests": final_state.get("enhancement_tests"),
                     "a11y_improvements": final_state.get("a11y_improvements"),
-                    "all_artifacts": final_state.get("all_artifacts", []),
                 },
-                "execution_notes": final_state.get("execution_notes", ""),
+                "artifacts": artifacts,
+                "execution_time_seconds": execution_time,
             }
 
         except Exception as e:
-            logger.error(f"Error executing UI Enhancement workflow: {str(e)}")
+            logger.error(f"Error executing UI Enhancement workflow: {str(e)}", exc_info=True)
+            execution_time = time.time() - start_time
             return {
                 "status": "failure",
+                "output": {"error": str(e)},
+                "artifacts": [],
+                "execution_time_seconds": execution_time,
                 "error": str(e),
-                "output": {},
+                "error_type": type(e).__name__,
             }
 
     async def _analysis_node(self, state: UIEnhancementState) -> UIEnhancementState:

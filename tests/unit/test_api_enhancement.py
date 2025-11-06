@@ -56,10 +56,19 @@ class TestAPIEnhancementWorkflow:
     async def test_validate_input_with_story(self, workflow):
         """Test input validation with valid story."""
         state: EnhancedWorkflowState = {
-            "story": "# API Enhancement\n\nAdd batch processing",
+            "input_story": "# API Enhancement\n\nAdd batch processing",
             "story_requirements": {},
             "story_type": "api_enhancement",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "api_enhancement"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -73,7 +82,7 @@ class TestAPIEnhancementWorkflow:
     async def test_validate_input_without_story(self, workflow):
         """Test input validation without story."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "api_enhancement",
             "preprocessor_output": {},
@@ -90,13 +99,22 @@ class TestAPIEnhancementWorkflow:
     async def test_execute_with_valid_state(self, workflow):
         """Test workflow execution with valid state."""
         state: EnhancedWorkflowState = {
-            "story": "# API Enhancements\nAdd batch processing and webhooks",
+            "input_story": "# API Enhancements\nAdd batch processing and webhooks",
             "story_requirements": {
                 "title": "Batch Processing API",
                 "description": "Add batch processing capabilities",
             },
             "story_type": "api_enhancement",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "api_enhancement"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -113,7 +131,7 @@ class TestAPIEnhancementWorkflow:
     async def test_execute_with_invalid_state(self, workflow):
         """Test workflow execution with invalid state."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "api_enhancement",
             "preprocessor_output": {},

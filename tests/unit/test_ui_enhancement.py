@@ -56,10 +56,19 @@ class TestUIEnhancementWorkflow:
     async def test_validate_input_with_story(self, workflow):
         """Test input validation with valid story."""
         state: EnhancedWorkflowState = {
-            "story": "# UI Enhancement\n\nImprove accessibility",
+            "input_story": "# UI Enhancement\n\nImprove accessibility",
             "story_requirements": {},
             "story_type": "ui_enhancement",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "ui_enhancement"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -73,7 +82,7 @@ class TestUIEnhancementWorkflow:
     async def test_validate_input_without_story(self, workflow):
         """Test input validation without story."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "ui_enhancement",
             "preprocessor_output": {},
@@ -90,13 +99,22 @@ class TestUIEnhancementWorkflow:
     async def test_execute_with_valid_state(self, workflow):
         """Test workflow execution with valid state."""
         state: EnhancedWorkflowState = {
-            "story": "# Dashboard Enhancements\nImprove accessibility and performance",
+            "input_story": "# Dashboard Enhancements\nImprove accessibility and performance",
             "story_requirements": {
                 "title": "Dashboard Accessibility",
                 "description": "Improve accessibility of dashboard components",
             },
             "story_type": "ui_enhancement",
-            "preprocessor_output": {},
+            "preprocessor_output": {
+                "extracted_data": {},
+                "parsed_sections": {},
+                "structure_valid": False,
+                "metadata": {},
+                "parsing_errors": [],
+                "parsing_warnings": [],
+                "input_summary": "",
+                "detected_story_type": "ui_enhancement"
+            },
             "planner_output": {},
             "workflow_tasks": [],
             "task_results": [],
@@ -113,7 +131,7 @@ class TestUIEnhancementWorkflow:
     async def test_execute_with_invalid_state(self, workflow):
         """Test workflow execution with invalid state."""
         state: EnhancedWorkflowState = {
-            "story": "",
+            "input_story": "",
             "story_requirements": {},
             "story_type": "ui_enhancement",
             "preprocessor_output": {},

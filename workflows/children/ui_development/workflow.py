@@ -119,9 +119,13 @@ class UIDevWorkflow(BaseChildWorkflow):
         Returns:
             True if state is valid for UI development, False otherwise
         """
-        # Check for required fields from preprocessor
-        if not state.get("story"):
-            logger.warning("UI Development: Missing story")
+        # Check for required parent workflow state fields
+        if not state.get("input_story"):
+            logger.warning("UI Development: Missing input_story from parent state")
+            return False
+
+        if not state.get("preprocessor_output"):
+            logger.warning("UI Development: Missing preprocessor_output from parent state")
             return False
 
         logger.info("UI Development input validation passed")
@@ -135,24 +139,35 @@ class UIDevWorkflow(BaseChildWorkflow):
             state: The parent workflow state
 
         Returns:
-            Dictionary with execution results
+            Dict with status, output, artifacts, and execution_time_seconds
         """
+        import time
+        start_time = time.time()
+
         logger.info("Executing UI Development workflow")
 
         try:
             # Validate input
             if not await self.validate_input(state):
+                execution_time = time.time() - start_time
                 return {
                     "status": "failure",
                     "error": "Invalid input state for UI development",
                     "output": {},
+                    "artifacts": [],
+                    "execution_time_seconds": execution_time,
                 }
+
+            # Extract input story and requirements from parent state
+            input_story = state.get("input_story", "")
+            preprocessor_output = state.get("preprocessor_output", {})
+            story_requirements = preprocessor_output.get("extracted_data", {})
 
             # Create initial internal state
             internal_state = create_initial_ui_state(
-                input_story=state.get("story", ""),
-                story_requirements=state.get("story_requirements", {}),
-                parent_context={"parent_state": state},
+                input_story=input_story,
+                story_requirements=story_requirements,
+                parent_context=state,
             )
 
             # Get the compiled graph
@@ -161,10 +176,17 @@ class UIDevWorkflow(BaseChildWorkflow):
             # Execute the graph
             final_state = await graph.ainvoke(internal_state)
 
-            logger.info("UI Development workflow completed")
+            # Collect artifacts
+            artifacts = final_state.get("all_artifacts", [])
+            execution_time = time.time() - start_time
+
+            logger.info(
+                f"UI Development workflow completed in {execution_time:.2f}s "
+                f"with status: {final_state.get('status')}"
+            )
 
             return {
-                "status": final_state.get("status", "success"),
+                "status": "success" if final_state.get("status") == "success" else "partial",
                 "output": {
                     "ui_plan": final_state.get("ui_plan"),
                     "ui_design": final_state.get("ui_design"),
@@ -172,17 +194,21 @@ class UIDevWorkflow(BaseChildWorkflow):
                     "styling_output": final_state.get("styling_output"),
                     "test_output": final_state.get("test_output"),
                     "docs_output": final_state.get("docs_output"),
-                    "all_artifacts": final_state.get("all_artifacts", []),
                 },
-                "execution_notes": final_state.get("execution_notes", ""),
+                "artifacts": artifacts,
+                "execution_time_seconds": execution_time,
             }
 
         except Exception as e:
-            logger.error(f"Error executing UI Development workflow: {str(e)}")
+            logger.error(f"Error executing UI Development workflow: {str(e)}", exc_info=True)
+            execution_time = time.time() - start_time
             return {
                 "status": "failure",
+                "output": {"error": str(e)},
+                "artifacts": [],
+                "execution_time_seconds": execution_time,
                 "error": str(e),
-                "output": {},
+                "error_type": type(e).__name__,
             }
 
     async def _planning_node(self, state: UIDevState) -> UIDevState:
