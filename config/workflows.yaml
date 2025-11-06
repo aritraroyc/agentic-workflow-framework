@@ -57,10 +57,107 @@ workflows:
         test_output: { type: object }
         docs_output: { type: object }
 
-  # Example A2A workflow (to be deployed as Docker service)
-  # - name: api_enhancement
+  # UI Development workflow (implemented in Phase 7)
+  - name: ui_development
+    workflow_type: ui_development
+    description: "Develops complete web UIs from requirements including design, code generation, styling, testing, and documentation"
+    version: "1.0.0"
+    deployment_mode: embedded
+    module_path: workflows.children.ui_development.workflow
+    dependencies:
+      - langgraph
+      - langchain
+      - langchain-anthropic
+    tags:
+      - ui
+      - development
+      - react
+      - frontend
+    is_active: true
+    author: "Framework Team"
+    input_schema:
+      type: object
+      properties:
+        ui_requirements: { type: string }
+        target_framework: { type: string }
+    output_schema:
+      type: object
+      properties:
+        ui_plan: { type: object }
+        ui_design: { type: object }
+        code_output: { type: object }
+        styling_output: { type: object }
+        test_output: { type: object }
+        docs_output: { type: object }
+
+  # API Enhancement workflow (implemented in Phase 7)
+  - name: api_enhancement
+    workflow_type: api_enhancement
+    description: "Enhances existing APIs with new features including batch processing, webhooks, advanced filtering, and monitoring"
+    version: "1.0.0"
+    deployment_mode: embedded
+    module_path: workflows.children.api_enhancement.workflow
+    dependencies:
+      - langgraph
+      - langchain
+      - langchain-anthropic
+    tags:
+      - api
+      - enhancement
+      - optimization
+      - monitoring
+    is_active: true
+    author: "Framework Team"
+    input_schema:
+      type: object
+      properties:
+        enhancement_requirements: { type: string }
+        current_api_structure: { type: object }
+    output_schema:
+      type: object
+      properties:
+        enhancement_analysis: { type: object }
+        enhancement_design: { type: object }
+        enhancement_code: { type: object }
+        enhancement_tests: { type: object }
+        monitoring_setup: { type: object }
+
+  # UI Enhancement workflow (implemented in Phase 7)
+  - name: ui_enhancement
+    workflow_type: ui_enhancement
+    description: "Enhances existing UIs with new features, improved accessibility (WCAG), performance optimization, and better UX"
+    version: "1.0.0"
+    deployment_mode: embedded
+    module_path: workflows.children.ui_enhancement.workflow
+    dependencies:
+      - langgraph
+      - langchain
+      - langchain-anthropic
+    tags:
+      - ui
+      - enhancement
+      - accessibility
+      - wcag
+    is_active: true
+    author: "Framework Team"
+    input_schema:
+      type: object
+      properties:
+        enhancement_requirements: { type: string }
+        current_ui_structure: { type: object }
+    output_schema:
+      type: object
+      properties:
+        enhancement_analysis: { type: object }
+        enhancement_design: { type: object }
+        enhancement_code: { type: object }
+        enhancement_tests: { type: object }
+        a11y_improvements: { type: object }
+
+  # Example A2A workflow (to be deployed as Docker service in Phase 8)
+  # - name: api_enhancement_service
   #   workflow_type: api_enhancement
-  #   description: "Enhances existing APIs"
+  #   description: "Enhances existing APIs (A2A service mode)"
   #   version: "1.0.0"
   #   deployment_mode: a2a
   #   service_url: http://localhost
@@ -70,5 +167,5 @@ workflows:
   #   tags:
   #     - api
   #     - enhancement
-  #   is_active: true
-  #   author: "AI Assistant"
+  #   is_active: false
+  #   author: "Framework Team"
