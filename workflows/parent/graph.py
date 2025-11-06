@@ -18,7 +18,14 @@ from typing import Callable, Dict, Optional, Any
 from datetime import datetime
 
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.sqlite import SqliteSaver
+
+# Try to import SqliteSaver for optional checkpointing support
+try:
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    CHECKPOINT_AVAILABLE = True
+except ImportError:
+    CHECKPOINT_AVAILABLE = False
+    SqliteSaver = None
 
 from workflows.parent.state import EnhancedWorkflowState, add_log_entry
 from workflows.parent.nodes import (
@@ -188,17 +195,24 @@ def create_enhanced_parent_workflow(
 
     # Configure checkpointing if directory is provided
     if checkpoint_dir:
-        logger.info(f"Configuring SQLite checkpointing at {checkpoint_dir}")
-        try:
-            checkpoint_saver = SqliteSaver(checkpoint_dir)
-            compiled_graph = graph_builder.compile(checkpointer=checkpoint_saver)
-            logger.info("Graph compiled with checkpointing enabled")
-        except Exception as e:
+        if not CHECKPOINT_AVAILABLE:
             logger.warning(
-                f"Failed to configure checkpointing: {str(e)}. "
+                f"Checkpoint directory provided ({checkpoint_dir}) but SqliteSaver is not available. "
                 "Compiling without checkpointing."
             )
             compiled_graph = graph_builder.compile()
+        else:
+            logger.info(f"Configuring SQLite checkpointing at {checkpoint_dir}")
+            try:
+                checkpoint_saver = SqliteSaver(checkpoint_dir)
+                compiled_graph = graph_builder.compile(checkpointer=checkpoint_saver)
+                logger.info("Graph compiled with checkpointing enabled")
+            except Exception as e:
+                logger.warning(
+                    f"Failed to configure checkpointing: {str(e)}. "
+                    "Compiling without checkpointing."
+                )
+                compiled_graph = graph_builder.compile()
     else:
         logger.debug("No checkpoint directory provided, compiling without checkpointing")
         compiled_graph = graph_builder.compile()
