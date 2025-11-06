@@ -95,7 +95,7 @@ async def run_workflow(story: str) -> Dict[str, Any]:
 
         # Create parent workflow graph
         logger.info("Initializing parent workflow...")
-        parent_workflow = await create_enhanced_parent_workflow()
+        parent_workflow = create_enhanced_parent_workflow()
 
         if parent_workflow is None:
             raise RuntimeError("Failed to create parent workflow graph")
@@ -116,8 +116,8 @@ async def run_workflow(story: str) -> Dict[str, Any]:
         logger.info("Executing parent workflow...")
         logger.info("-" * 80)
 
-        # Execute workflow
-        result_state = parent_workflow.invoke(input_state)
+        # Execute workflow (async)
+        result_state = await parent_workflow.ainvoke(input_state)
 
         logger.info("-" * 80)
         logger.info("Parent workflow execution completed")

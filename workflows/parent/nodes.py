@@ -445,9 +445,10 @@ async def aggregator_node(state: EnhancedWorkflowState) -> EnhancedWorkflowState
             },
         )
 
+        execution_time = state.get('execution_time_seconds') or 0
         logger.info(
             f"Aggregator completed: status={final_output.get('status')}, "
-            f"artifacts={len(final_artifacts)}, total_time={state.get('execution_time_seconds'):.2f}s"
+            f"artifacts={len(final_artifacts)}, total_time={execution_time:.2f}s"
         )
         return state
 

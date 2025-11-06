@@ -18,11 +18,7 @@ from typing import Callable, Dict, Optional, Any
 from datetime import datetime
 
 from langgraph.graph import StateGraph, END
-
-try:
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-except ImportError:
-    AsyncSqliteSaver = None  # type: ignore
+from langgraph.checkpoint.sqlite import SqliteSaver
 
 from workflows.parent.state import EnhancedWorkflowState, add_log_entry
 from workflows.parent.nodes import (
@@ -194,17 +190,9 @@ def create_enhanced_parent_workflow(
     if checkpoint_dir:
         logger.info(f"Configuring SQLite checkpointing at {checkpoint_dir}")
         try:
-            # Try to use AsyncSqliteSaver for async operations
-            if AsyncSqliteSaver is not None:
-                checkpoint_saver = AsyncSqliteSaver(checkpoint_dir)
-                compiled_graph = graph_builder.compile(checkpointer=checkpoint_saver)
-                logger.info("Graph compiled with async checkpointing enabled")
-            else:
-                logger.warning(
-                    "AsyncSqliteSaver not available (requires aiosqlite). "
-                    "Compiling without checkpointing."
-                )
-                compiled_graph = graph_builder.compile()
+            checkpoint_saver = SqliteSaver(checkpoint_dir)
+            compiled_graph = graph_builder.compile(checkpointer=checkpoint_saver)
+            logger.info("Graph compiled with checkpointing enabled")
         except Exception as e:
             logger.warning(
                 f"Failed to configure checkpointing: {str(e)}. "
