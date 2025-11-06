@@ -6,8 +6,11 @@ parent workflow. These schemas enable type-safe state transitions and are compat
 LangGraph's state graph architecture.
 """
 
-from typing import TypedDict, Optional, Dict, List, Any
+from typing import TypedDict, Optional, Dict, List, Any, TYPE_CHECKING
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from workflows.registry.registry import WorkflowRegistry
 
 
 class WorkflowExecutionResult(TypedDict, total=False):
@@ -180,6 +183,9 @@ class EnhancedWorkflowState(TypedDict, total=False):
         error_component: Which component threw the error
         error_timestamp: When the error occurred
         error_details: Detailed error information
+
+        # Registry (for child workflow execution)
+        registry: WorkflowRegistry instance for invoking child workflows
     """
     # Input
     input_story: str
@@ -214,13 +220,17 @@ class EnhancedWorkflowState(TypedDict, total=False):
     error_timestamp: Optional[str]
     error_details: Optional[Dict[str, Any]]
 
+    # Registry (for child workflow execution)
+    registry: Optional[Any]  # WorkflowRegistry
 
-def create_initial_state(input_story: str) -> EnhancedWorkflowState:
+
+def create_initial_state(input_story: str, registry: Optional[Any] = None) -> EnhancedWorkflowState:
     """
     Create an initial state for a new workflow execution.
 
     Args:
         input_story: The raw markdown input from the user
+        registry: Optional WorkflowRegistry instance for child workflow execution
 
     Returns:
         An initialized EnhancedWorkflowState with default values
@@ -258,6 +268,9 @@ def create_initial_state(input_story: str) -> EnhancedWorkflowState:
         "error_component": None,
         "error_timestamp": None,
         "error_details": None,
+
+        # Registry
+        "registry": registry,
     }
 
 

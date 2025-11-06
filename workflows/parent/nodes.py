@@ -267,15 +267,17 @@ async def coordinator_node(state: EnhancedWorkflowState) -> EnhancedWorkflowStat
         execution_order = planner_output.get("execution_order", [])
         task_dependencies = planner_output.get("task_dependencies", {})
 
-        # Initialize coordinator
-        coordinator = WorkflowCoordinator(timeout_seconds=3600, max_retries=3)
+        # Initialize coordinator with registry from state
+        registry = state.get("registry")
+        coordinator = WorkflowCoordinator(timeout_seconds=3600, max_retries=3, registry=registry)
 
-        # Execute workflows
+        # Execute workflows with parent state for child workflow access
         execution_results = await coordinator.execute(
             workflow_tasks=state.get("workflow_tasks", []),
             execution_strategy=execution_strategy,
             execution_order=execution_order,
             task_dependencies=task_dependencies,
+            parent_state=state,
         )
 
         # Update state

@@ -78,12 +78,13 @@ def setup_registry() -> Any:
     return registry
 
 
-async def run_workflow(story: str) -> Dict[str, Any]:
+async def run_workflow(story: str, registry: Any = None) -> Dict[str, Any]:
     """
     Execute the complete parent workflow.
 
     Args:
         story: Story content
+        registry: WorkflowRegistry instance for child workflow execution
 
     Returns:
         Workflow execution results
@@ -102,16 +103,9 @@ async def run_workflow(story: str) -> Dict[str, Any]:
 
         logger.info("Parent workflow initialized successfully")
 
-        # Prepare input state
-        input_state = {
-            "input_story": story,
-            "context": {},
-            "execution_log": [],
-            "intermediate_results": {},
-            "preprocessor_output": None,
-            "planner_output": None,
-            "all_workflow_results": {},
-        }
+        # Prepare input state with registry
+        from workflows.parent.state import create_initial_state
+        input_state = create_initial_state(story, registry=registry)
 
         logger.info("Executing parent workflow...")
         logger.info("-" * 80)
@@ -272,10 +266,10 @@ async def main():
         logger.info(f"Story loaded ({len(story)} characters)")
 
         # Setup registry (validates configuration)
-        setup_registry()
+        registry = setup_registry()
 
         # Run workflow
-        result_state = await run_workflow(story)
+        result_state = await run_workflow(story, registry=registry)
 
         # Save results
         save_results(result_state, args.output_dir)
