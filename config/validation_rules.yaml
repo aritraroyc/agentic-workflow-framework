@@ -1,0 +1,113 @@
+# Validation Rules for Workflow Stories
+# This configuration defines the structure and requirements for input stories
+
+# Supported story types
+story_types:
+  - api_development
+  - api_enhancement
+  - ui_development
+  - ui_enhancement
+
+# Required sections that must be present in all stories
+required_sections:
+  - Story
+  - Requirements
+
+# Optional sections that are helpful but not required
+optional_sections:
+  - Success Criteria
+  - Acceptance Criteria
+  - Constraints
+  - Limitations
+  - Notes
+  - Context
+  - Background
+  - Technical Details
+  - API Specification
+
+# Required fields in extracted data
+required_fields:
+  - title
+  - description
+
+# Validation constraints
+validation:
+  # Minimum content length in characters
+  min_content_length: 50
+
+  # Minimum number of requirements
+  min_requirements: 1
+
+  # Maximum story sections
+  max_sections: 20
+
+  # Maximum section content length
+  max_section_length: 10000
+
+# Story type detection patterns
+story_type_patterns:
+  api_development:
+    keywords:
+      - api
+      - endpoint
+      - rest
+      - http
+      - service
+      - backend
+      - develop
+      - create
+      - build
+    exclude_keywords:
+      - enhancement
+      - improve
+      - update
+
+  api_enhancement:
+    keywords:
+      - api
+      - endpoint
+      - enhance
+      - improve
+      - update
+      - modify
+      - optimize
+    exclude_keywords: []
+
+  ui_development:
+    keywords:
+      - ui
+      - frontend
+      - interface
+      - component
+      - mfe
+      - develop
+      - create
+      - build
+      - page
+    exclude_keywords:
+      - enhancement
+      - improve
+
+  ui_enhancement:
+    keywords:
+      - ui
+      - frontend
+      - interface
+      - component
+      - enhance
+      - improve
+      - update
+      - modify
+    exclude_keywords: []
+
+# Complexity estimation thresholds
+complexity:
+  low:
+    max_word_count: 500
+    max_requirement_count: 3
+  medium:
+    max_word_count: 1500
+    max_requirement_count: 8
+  high:
+    max_word_count: 99999
+    max_requirement_count: 99999
