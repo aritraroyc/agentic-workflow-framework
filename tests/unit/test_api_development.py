@@ -154,12 +154,24 @@ class TestApiDevelopmentValidation:
     async def test_validate_input_missing_extracted_data(
         self, api_workflow, sample_parent_state, sample_preprocessor_output
     ) -> None:
-        """Test validation fails when extracted_data is missing."""
-        sample_preprocessor_output["extracted_data"] = {}
+        """Test validation fails when extracted_data field is missing from preprocessor output."""
+        # Remove extracted_data field entirely
+        del sample_preprocessor_output["extracted_data"]
         sample_parent_state["preprocessor_output"] = sample_preprocessor_output
 
         is_valid = await api_workflow.validate_input(sample_parent_state)
         assert is_valid is False
+
+    @pytest.mark.asyncio
+    async def test_validate_input_with_empty_extracted_data(
+        self, api_workflow, sample_parent_state, sample_preprocessor_output
+    ) -> None:
+        """Test validation passes when extracted_data is an empty dict (field exists)."""
+        sample_preprocessor_output["extracted_data"] = {}
+        sample_parent_state["preprocessor_output"] = sample_preprocessor_output
+
+        is_valid = await api_workflow.validate_input(sample_parent_state)
+        assert is_valid is True
 
     @pytest.mark.asyncio
     async def test_validate_input_handles_exceptions(

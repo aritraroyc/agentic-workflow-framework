@@ -122,9 +122,9 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
 
             preprocessor_output = state["preprocessor_output"]
 
-            # Check for basic requirements
-            if not preprocessor_output.get("extracted_data"):
-                logger.warning("Missing extracted_data in preprocessor output")
+            # Check that extracted_data field exists (can be empty dict)
+            if "extracted_data" not in preprocessor_output:
+                logger.warning("Missing extracted_data field in preprocessor output")
                 return False
 
             logger.info("Input validation passed for API development workflow")
@@ -169,8 +169,8 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 parent_context=state.get("context", {}),
             )
 
-            # Invoke the graph
-            result_state = graph.invoke(child_state)
+            # Invoke the graph asynchronously
+            result_state = await graph.ainvoke(child_state)
 
             # Collect artifacts
             artifacts = result_state.get("all_artifacts", [])
