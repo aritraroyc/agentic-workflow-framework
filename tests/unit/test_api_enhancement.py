@@ -15,7 +15,7 @@ from workflows.children.api_enhancement.state import (
     ApiEnhancementState,
     create_initial_enhancement_state,
 )
-from workflows.children.api_enhancement.agents.planner import APIEnhancementPlannerAgent
+from workflows.children.api_enhancement.agents.execution_planner import APIEnhancementPlannerAgent
 from workflows.parent.state import EnhancedWorkflowState
 from workflows.registry.registry import WorkflowMetadata, DeploymentMode
 

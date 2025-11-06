@@ -358,7 +358,7 @@ class TestApiPlannerAgent:
     @pytest.mark.asyncio
     async def test_planner_agent_validation(self) -> None:
         """Test that planner agent can validate requirements."""
-        from workflows.children.api_development.agents.planner import ApiPlannerAgent
+        from workflows.children.api_development.agents.execution_planner import ApiPlannerAgent
 
         agent = ApiPlannerAgent()
 
@@ -383,7 +383,7 @@ class TestApiPlannerAgent:
     @pytest.mark.asyncio
     async def test_planner_agent_planning(self) -> None:
         """Test that planner agent can create API plan."""
-        from workflows.children.api_development.agents.planner import ApiPlannerAgent
+        from workflows.children.api_development.agents.execution_planner import ApiPlannerAgent
 
         agent = ApiPlannerAgent()
 

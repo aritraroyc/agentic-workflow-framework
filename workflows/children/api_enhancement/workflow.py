@@ -22,7 +22,7 @@ from workflows.children.api_enhancement.state import (
     ApiEnhancementState,
     create_initial_enhancement_state,
 )
-from workflows.children.api_enhancement.agents.planner import APIEnhancementPlannerAgent
+from workflows.children.api_enhancement.agents.execution_planner import APIEnhancementPlannerAgent
 from core.llm import get_default_llm_client
 from workflows.children.api_enhancement.prompts import (
     DESIGN_ENHANCEMENT_PROMPT,

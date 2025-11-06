@@ -23,7 +23,7 @@ from workflows.children.ui_development.state import (
     UIDevState,
     create_initial_ui_state,
 )
-from workflows.children.ui_development.agents.planner import UIPlannerAgent
+from workflows.children.ui_development.agents.execution_planner import UIPlannerAgent
 from core.llm import get_default_llm_client
 from workflows.children.ui_development.prompts import (
     DESIGN_UI_PROMPT,

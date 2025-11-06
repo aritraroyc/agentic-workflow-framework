@@ -15,7 +15,7 @@ from workflows.children.ui_development.state import (
     UIDevState,
     create_initial_ui_state,
 )
-from workflows.children.ui_development.agents.planner import UIPlannerAgent
+from workflows.children.ui_development.agents.execution_planner import UIPlannerAgent
 from workflows.parent.state import EnhancedWorkflowState
 from workflows.registry.registry import WorkflowMetadata, DeploymentMode
 

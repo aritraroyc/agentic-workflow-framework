@@ -22,7 +22,7 @@ from workflows.children.ui_enhancement.state import (
     UIEnhancementState,
     create_initial_ui_enhancement_state,
 )
-from workflows.children.ui_enhancement.agents.planner import UIEnhancementPlannerAgent
+from workflows.children.ui_enhancement.agents.execution_planner import UIEnhancementPlannerAgent
 from core.llm import get_default_llm_client
 from workflows.children.ui_enhancement.prompts import (
     DESIGN_UI_ENHANCEMENT_PROMPT,
