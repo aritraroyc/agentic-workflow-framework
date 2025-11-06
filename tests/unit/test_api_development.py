@@ -371,11 +371,13 @@ class TestApiPlannerAgent:
     async def test_planner_agent_validation(self) -> None:
         """Test that planner agent can validate requirements."""
         from workflows.children.api_development.agents.execution_planner import ApiPlannerAgent
+        from unittest.mock import MagicMock
 
         agent = ApiPlannerAgent()
 
         with patch.object(agent, "llm_client") as mock_llm:
-            mock_llm.invoke = AsyncMock(
+            # asyncio.to_thread expects a synchronous function, not AsyncMock
+            mock_llm.invoke = MagicMock(
                 return_value=json.dumps(
                     {
                         "is_valid": True,
@@ -396,11 +398,13 @@ class TestApiPlannerAgent:
     async def test_planner_agent_planning(self) -> None:
         """Test that planner agent can create API plan."""
         from workflows.children.api_development.agents.execution_planner import ApiPlannerAgent
+        from unittest.mock import MagicMock
 
         agent = ApiPlannerAgent()
 
         with patch.object(agent, "llm_client") as mock_llm:
-            mock_llm.invoke = AsyncMock(
+            # asyncio.to_thread expects a synchronous function, not AsyncMock
+            mock_llm.invoke = MagicMock(
                 return_value=json.dumps(
                     {
                         "api_name": "Test API",

@@ -209,18 +209,26 @@ class TestUIEnhancementPlannerAgent:
     @pytest.mark.asyncio
     async def test_fallback_analysis_generation(self, agent):
         """Test fallback analysis generation when LLM fails."""
-        result = await agent.analyze_enhancement_requirements(
-            story_requirements={},
-        )
+        from unittest.mock import MagicMock, patch
 
-        # Should have a fallback analysis
-        assert result["analysis"] is not None
-        analysis = result["analysis"]
+        # Mock the LLM to raise an exception (simulating LLM failure)
+        with patch.object(agent, "llm_client") as mock_llm:
+            mock_llm.invoke = MagicMock(
+                side_effect=Exception("LLM service unavailable")
+            )
 
-        assert "current_ui_summary" in analysis
-        assert "enhancements" in analysis
-        assert "design_impact" in analysis
-        assert isinstance(analysis["enhancements"], list)
+            result = await agent.analyze_enhancement_requirements(
+                story_requirements={},
+            )
+
+            # Should have a fallback analysis
+            assert result["analysis"] is not None
+            analysis = result["analysis"]
+
+            assert "current_ui_summary" in analysis
+            assert "enhancements" in analysis
+            assert "design_impact" in analysis
+            assert isinstance(analysis["enhancements"], list)
 
 
 class TestUIEnhancementWorkflowIntegration:

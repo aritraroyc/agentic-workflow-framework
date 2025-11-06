@@ -7,6 +7,7 @@ including endpoint definitions, framework choice, authentication method, etc.
 
 import json
 import logging
+import asyncio
 from typing import Dict, Any, Optional
 
 from core.llm import get_default_llm_client
@@ -51,14 +52,16 @@ class ApiPlannerAgent:
 
             prompt = VALIDATE_REQUIREMENTS_PROMPT.format(story=story)
 
-            response = await self.llm_client.invoke(
+            response = await asyncio.to_thread(
+                self.llm_client.invoke,
                 [{"role": "system", "content": "You are an API requirements validator."},
                  {"role": "user", "content": prompt}]
             )
 
             # Try to parse as JSON
             try:
-                validation_result = json.loads(response)
+                response_text = response.content if hasattr(response, 'content') else str(response)
+                validation_result = json.loads(response_text)
                 is_valid = validation_result.get("is_valid", False)
                 summary = validation_result.get("summary", "Validation completed")
                 missing = validation_result.get("missing_elements", [])
@@ -75,7 +78,8 @@ class ApiPlannerAgent:
                 )
                 is_valid = has_endpoints or has_methods
 
-                return is_valid, response
+                response_text = response.content if hasattr(response, 'content') else str(response)
+                return is_valid, response_text
 
         except Exception as e:
             logger.error(f"Error validating requirements: {str(e)}", exc_info=True)
@@ -101,7 +105,8 @@ class ApiPlannerAgent:
                 story=story, requirements=json.dumps(requirements, indent=2)
             )
 
-            response = await self.llm_client.invoke(
+            response = await asyncio.to_thread(
+                self.llm_client.invoke,
                 [
                     {
                         "role": "system",
@@ -113,10 +118,12 @@ class ApiPlannerAgent:
 
             # Parse the JSON response
             try:
-                plan_dict = json.loads(response)
+                response_text = response.content if hasattr(response, 'content') else str(response)
+                plan_dict = json.loads(response_text)
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse plan JSON: {str(e)}")
-                logger.debug(f"Response was: {response[:500]}")
+                response_text = response.content if hasattr(response, 'content') else str(response)
+                logger.debug(f"Response was: {response_text[:500]}")
                 # Provide a minimal fallback plan
                 plan_dict = self._create_fallback_plan(story, requirements)
 

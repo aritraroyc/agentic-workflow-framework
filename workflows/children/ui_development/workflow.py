@@ -12,6 +12,7 @@ This workflow handles the complete UI development lifecycle:
 
 import json
 import logging
+import asyncio
 from typing import Dict, Any, Optional
 
 from langgraph.graph import StateGraph, END
@@ -275,8 +276,8 @@ class UIDevWorkflow(BaseChildWorkflow):
                 ui_plan=json.dumps(state["ui_plan"], indent=2)
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 design = json.loads(response_text)
@@ -314,8 +315,8 @@ class UIDevWorkflow(BaseChildWorkflow):
                 ui_plan=json.dumps(state.get("ui_plan", {}), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 code_output = json.loads(response_text)
@@ -359,8 +360,8 @@ class UIDevWorkflow(BaseChildWorkflow):
                 framework=framework,
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 styling_output = json.loads(response_text)
@@ -401,8 +402,8 @@ class UIDevWorkflow(BaseChildWorkflow):
                 testing_framework="Jest",
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 test_output = json.loads(response_text)
@@ -445,8 +446,8 @@ class UIDevWorkflow(BaseChildWorkflow):
                 pages=json.dumps(state.get("ui_plan", {}).get("pages", []), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 docs_output = json.loads(response_text)

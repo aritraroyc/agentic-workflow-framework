@@ -7,6 +7,7 @@ for UI development including component definitions, pages, and architecture.
 
 import json
 import logging
+import asyncio
 from typing import Dict, Any, Optional
 
 from core.llm import get_default_llm_client
@@ -60,8 +61,8 @@ class UIPlannerAgent:
 
             # Call the LLM
             logger.debug(f"Calling LLM with prompt length: {len(prompt)}")
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             # Parse the JSON response
             try:

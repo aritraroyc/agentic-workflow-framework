@@ -11,6 +11,7 @@ This workflow handles UI enhancement lifecycle:
 
 import json
 import logging
+import asyncio
 from typing import Dict, Any, Optional
 
 from langgraph.graph import StateGraph, END
@@ -254,8 +255,8 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
                 enhancement_analysis=json.dumps(state["enhancement_analysis"], indent=2)
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 design = json.loads(response_text)
@@ -289,8 +290,8 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
                 enhancement_analysis=json.dumps(state.get("enhancement_analysis", {}), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 code_output = json.loads(response_text)
@@ -324,8 +325,8 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
                 enhancement_analysis=json.dumps(state.get("enhancement_analysis", {}), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 test_output = json.loads(response_text)
@@ -359,8 +360,8 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
                 enhancement_analysis=json.dumps(state.get("enhancement_analysis", {}), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 a11y_output = json.loads(response_text)
@@ -394,8 +395,8 @@ class UIEnhancementWorkflow(BaseChildWorkflow):
                 enhancement_analysis=json.dumps(state.get("enhancement_analysis", {}), indent=2),
             )
 
-            response = await self.llm_client.ainvoke(prompt)
-            response_text = response.content
+            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response_text = response.content if hasattr(response, 'content') else str(response)
 
             try:
                 docs_output = json.loads(response_text)

@@ -233,21 +233,29 @@ class TestUIPlannerAgent:
     @pytest.mark.asyncio
     async def test_fallback_plan_generation(self, agent):
         """Test fallback plan generation when LLM fails."""
-        result = await agent.plan_ui_development(
-            story_requirements={},
-            framework_preference="React",
-            typescript_enabled=True,
-        )
+        from unittest.mock import MagicMock, patch
 
-        # Should have a fallback plan
-        assert result["ui_plan"] is not None
-        ui_plan = result["ui_plan"]
+        # Mock the LLM to raise an exception (simulating LLM failure)
+        with patch.object(agent, "llm_client") as mock_llm:
+            mock_llm.invoke = MagicMock(
+                side_effect=Exception("LLM service unavailable")
+            )
 
-        assert "project_name" in ui_plan
-        assert "components" in ui_plan
-        assert "target_framework" in ui_plan
-        assert ui_plan["target_framework"] == "React"
-        assert ui_plan["typescript_enabled"] is True
+            result = await agent.plan_ui_development(
+                story_requirements={},
+                framework_preference="React",
+                typescript_enabled=True,
+            )
+
+            # Should have a fallback plan
+            assert result["ui_plan"] is not None
+            ui_plan = result["ui_plan"]
+
+            assert "project_name" in ui_plan
+            assert "components" in ui_plan
+            assert "target_framework" in ui_plan
+            assert ui_plan["target_framework"] == "React"
+            assert ui_plan["typescript_enabled"] is True
 
 
 class TestUIDevWorkflowIntegration:
