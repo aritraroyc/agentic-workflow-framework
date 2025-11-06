@@ -418,7 +418,10 @@ class PreprocessorAgent:
         self, full_content: str, extracted: Dict[str, Any]
     ) -> str:
         """
-        Detect the type of story (API, UI, etc.).
+        Detect the type of story (API, UI, etc.) using keyword matching.
+
+        Counts keyword matches to determine the most likely story type,
+        allowing stories to mention both API and UI concepts.
 
         Args:
             full_content: Full story content
@@ -429,17 +432,28 @@ class PreprocessorAgent:
         """
         lower_content = full_content.lower()
 
-        # API patterns
-        if any(keyword in lower_content for keyword in ["api", "endpoint", "rest", "http", "service"]):
-            if "enhancement" in lower_content or "enhance" in lower_content:
-                return "api_enhancement"
-            return "api_development"
+        # Define keyword patterns with weights
+        api_keywords = ["api", "endpoint", "rest", "http", "service", "backend", "database"]
+        ui_keywords = ["ui", "frontend", "interface", "component", "mfe", "react", "vue", "angular",
+                      "dashboard", "design", "layout", "button", "form", "widget", "page"]
+        enhancement_keywords = ["enhancement", "enhance", "improve", "upgrade", "add", "extend"]
 
-        # UI patterns
-        if any(keyword in lower_content for keyword in ["ui", "frontend", "interface", "component", "mfe"]):
-            if "enhancement" in lower_content or "enhance" in lower_content:
-                return "ui_enhancement"
-            return "ui_development"
+        # Count keyword matches
+        api_count = sum(1 for keyword in api_keywords if keyword in lower_content)
+        ui_count = sum(1 for keyword in ui_keywords if keyword in lower_content)
+        is_enhancement = any(keyword in lower_content for keyword in enhancement_keywords)
+
+        # Determine type based on keyword count
+        if ui_count > api_count:
+            return "ui_enhancement" if is_enhancement else "ui_development"
+        elif api_count > ui_count:
+            return "api_enhancement" if is_enhancement else "api_development"
+        else:
+            # Fallback to keyword presence (UI takes precedence if equal)
+            if any(keyword in lower_content for keyword in ui_keywords):
+                return "ui_enhancement" if is_enhancement else "ui_development"
+            elif any(keyword in lower_content for keyword in api_keywords):
+                return "api_enhancement" if is_enhancement else "api_development"
 
         # Default
         return "unknown"
