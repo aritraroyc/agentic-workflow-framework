@@ -422,6 +422,7 @@ class PreprocessorAgent:
 
         Counts keyword matches to determine the most likely story type,
         allowing stories to mention both API and UI concepts.
+        Uses word boundaries to avoid substring matches (e.g., "add" in "addresses").
 
         Args:
             full_content: Full story content
@@ -432,16 +433,27 @@ class PreprocessorAgent:
         """
         lower_content = full_content.lower()
 
-        # Define keyword patterns with weights
+        # Define keyword patterns (used for counting)
         api_keywords = ["api", "endpoint", "rest", "http", "service", "backend", "database"]
         ui_keywords = ["ui", "frontend", "interface", "component", "mfe", "react", "vue", "angular",
                       "dashboard", "design", "layout", "button", "form", "widget", "page"]
-        enhancement_keywords = ["enhancement", "enhance", "improve", "upgrade", "add", "extend"]
+        # Enhancement keywords - using more specific terms to avoid substring matches
+        enhancement_keywords = ["enhancement", "enhance", "improve", "improvement", "upgrade", "extend", "extension"]
 
-        # Count keyword matches
-        api_count = sum(1 for keyword in api_keywords if keyword in lower_content)
-        ui_count = sum(1 for keyword in ui_keywords if keyword in lower_content)
-        is_enhancement = any(keyword in lower_content for keyword in enhancement_keywords)
+        # Helper function to check for whole word matches using word boundaries
+        def count_word_matches(content: str, keywords: List[str]) -> int:
+            count = 0
+            for keyword in keywords:
+                # Use word boundary regex: \b matches word boundaries
+                import re
+                if re.search(rf'\b{re.escape(keyword)}\b', content):
+                    count += 1
+            return count
+
+        # Count keyword matches using word boundaries
+        api_count = count_word_matches(lower_content, api_keywords)
+        ui_count = count_word_matches(lower_content, ui_keywords)
+        is_enhancement = count_word_matches(lower_content, enhancement_keywords) > 0
 
         # Determine type based on keyword count
         if ui_count > api_count:
@@ -450,9 +462,9 @@ class PreprocessorAgent:
             return "api_enhancement" if is_enhancement else "api_development"
         else:
             # Fallback to keyword presence (UI takes precedence if equal)
-            if any(keyword in lower_content for keyword in ui_keywords):
+            if ui_count > 0:
                 return "ui_enhancement" if is_enhancement else "ui_development"
-            elif any(keyword in lower_content for keyword in api_keywords):
+            elif api_count > 0:
                 return "api_enhancement" if is_enhancement else "api_development"
 
         # Default
