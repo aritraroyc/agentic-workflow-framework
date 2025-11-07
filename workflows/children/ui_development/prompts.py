@@ -1,12 +1,22 @@
 """
-LLM prompts for UI Development workflow.
+Prompt templates for UI Development workflow.
 
-These prompts guide the LLM through different phases of UI development:
-planning, design, code generation, styling, testing, and documentation.
+This module contains LangChain PromptTemplate objects for all phases of UI development:
+- Planning and component identification
+- Design system specification
+- Code generation
+- Styling strategy
+- Testing strategy
+- Documentation
 """
 
-PLAN_UI_PROMPT = """
-You are an expert UI/UX architect tasked with planning a web application.
+from langchain_core.prompts import PromptTemplate
+
+# ========== UI Planning Templates ==========
+
+PLAN_UI_PROMPT = PromptTemplate(
+    input_variables=["story_requirements", "framework_preference", "typescript"],
+    template="""You are an expert UI/UX architect tasked with planning a web application.
 
 Based on the following requirements, create a comprehensive UI development plan:
 
@@ -47,11 +57,14 @@ Return the response as a valid JSON object with these keys:
     "accessibility_level": "A|AA|AAA",
     "state_management": "string",
     "architecture_notes": "string"
-}}
-"""
+}}""",
+)
 
-DESIGN_UI_PROMPT = """
-You are an expert UI/UX designer tasked with creating a design system and component specifications.
+# ========== UI Design Templates ==========
+
+DESIGN_UI_PROMPT = PromptTemplate(
+    input_variables=["ui_plan"],
+    template="""You are an expert UI/UX designer tasked with creating a design system and component specifications.
 
 Based on the UI plan below, create detailed design specifications:
 
@@ -95,11 +108,14 @@ Return the response as a valid JSON object with these keys:
     }},
     "layout_patterns": ["string"],
     "design_notes": "string"
-}}
-"""
+}}""",
+)
 
-GENERATE_UI_CODE_PROMPT = """
-You are an expert frontend developer tasked with generating production-ready React/TypeScript code.
+# ========== Code Generation Templates ==========
+
+GENERATE_UI_CODE_PROMPT = PromptTemplate(
+    input_variables=["design_specs", "ui_plan"],
+    template="""You are an expert frontend developer tasked with generating production-ready React/TypeScript code.
 
 Based on the design specifications below, generate the component code structure:
 
@@ -132,11 +148,14 @@ Return the response as a valid JSON object with these keys:
     "key_patterns": ["string"],
     "component_hierarchy": "string",
     "state_management_plan": "string"
-}}
-"""
+}}""",
+)
 
-GENERATE_STYLING_PROMPT = """
-You are an expert CSS/styling specialist tasked with defining the styling approach.
+# ========== Styling Templates ==========
+
+GENERATE_STYLING_PROMPT = PromptTemplate(
+    input_variables=["design_system", "component_specs", "framework"],
+    template="""You are an expert CSS/styling specialist tasked with defining the styling approach.
 
 Based on the design tokens and specifications below, create a styling strategy:
 
@@ -169,11 +188,14 @@ Return the response as a valid JSON object with these keys:
     "global_styles": "string",
     "component_styling_pattern": "string",
     "tailwind_config": {{}}
-}}
-"""
+}}""",
+)
 
-GENERATE_TESTS_PROMPT = """
-You are an expert in UI testing tasked with planning comprehensive test coverage.
+# ========== Testing Templates ==========
+
+GENERATE_TESTS_PROMPT = PromptTemplate(
+    input_variables=["component_specs", "pages", "testing_framework"],
+    template="""You are an expert in UI testing tasked with planning comprehensive test coverage.
 
 Based on the component specifications and code structure below, create a testing strategy:
 
@@ -210,11 +232,14 @@ Return the response as a valid JSON object with these keys:
     }},
     "testing_libraries": ["string"],
     "key_test_scenarios": ["string"]
-}}
-"""
+}}""",
+)
 
-GENERATE_DOCS_PROMPT = """
-You are a technical writer tasked with creating comprehensive UI documentation.
+# ========== Documentation Templates ==========
+
+GENERATE_DOCS_PROMPT = PromptTemplate(
+    input_variables=["component_specs", "design_system", "pages"],
+    template="""You are a technical writer tasked with creating comprehensive UI documentation.
 
 Based on the component specifications, design system, and code structure below, create documentation:
 
@@ -249,5 +274,5 @@ Return the response as a valid JSON object with these keys:
     "storybook_needed": boolean,
     "example_code_sections": ["string"],
     "setup_instructions": "string"
-}}
-"""
+}}""",
+)

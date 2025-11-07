@@ -61,7 +61,10 @@ class UIPlannerAgent:
 
             # Call the LLM
             logger.debug(f"Calling LLM with prompt length: {len(prompt)}")
-            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response = await asyncio.to_thread(
+                self.llm_client.invoke,
+                [{"role": "user", "content": prompt}]
+            )
             response_text = response.content if hasattr(response, 'content') else str(response)
 
             # Parse the JSON response

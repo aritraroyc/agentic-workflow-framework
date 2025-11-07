@@ -23,12 +23,19 @@ class EnhancementRequirement(TypedDict, total=False):
 class EnhancementAnalysis(TypedDict, total=False):
     """Analysis of enhancement requirements."""
     current_api_structure: Dict[str, Any]
+    current_language: str  # "Python|Java"
+    current_framework: str  # "FastAPI|Flask|Django|Spring Boot"
     enhancement_scope: List[EnhancementRequirement]
     architectural_impact: str
     migration_strategy: Optional[str]
     backward_compatibility_approach: str
     versioning_strategy: str  # semantic, URL-based, header-based
     estimated_timeline: str
+    # Java/Spring Boot specific fields (optional)
+    java_version: str  # "17" or "21" (only for Spring Boot)
+    build_tool: str  # "Maven" or "Gradle" (only for Spring Boot)
+    spring_boot_starters: List[str]  # Spring Boot starter dependencies
+    spring_security_config: str  # Spring Security configuration approach
 
 
 class EnhancementDesign(TypedDict, total=False):

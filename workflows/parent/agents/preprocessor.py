@@ -16,6 +16,7 @@ import asyncio
 import yaml
 
 from workflows.parent.state import PreprocessorOutput, ExecutionLogEntry
+from workflows.parent.prompts import PREPROCESSOR_EXTRACTION_TEMPLATE
 
 logger = logging.getLogger(__name__)
 
@@ -246,8 +247,8 @@ class PreprocessorAgent:
             return self._extract_structured_data_heuristic(sections)
 
         try:
-            # Create extraction prompt
-            prompt = self._create_extraction_prompt(full_content, sections)
+            # Create extraction prompt using template
+            prompt = PREPROCESSOR_EXTRACTION_TEMPLATE.format(full_content=full_content)
 
             # Call LLM
             response = await asyncio.to_thread(
@@ -513,35 +514,6 @@ class PreprocessorAgent:
             return "No summary available"
 
         return " | ".join(summary_parts[:2])
-
-    def _create_extraction_prompt(
-        self, full_content: str, sections: Dict[str, str]
-    ) -> str:
-        """
-        Create the LLM prompt for structured data extraction.
-
-        Args:
-            full_content: Full story content
-            sections: Parsed sections
-
-        Returns:
-            Prompt string for LLM
-        """
-        return f"""Analyze the following workflow story and extract structured information.
-
-Story:
-{full_content}
-
-Please extract and return a JSON object with:
-1. title: Main title or subject
-2. description: Brief description
-3. requirements: List of technical/functional requirements
-4. success_criteria: List of success criteria
-5. constraints: Any constraints or limitations
-6. estimated_effort_hours: Estimate in hours
-7. dependencies: List of dependencies
-
-Return ONLY valid JSON, no markdown formatting."""
 
     def _parse_llm_response(self, response: Any) -> Dict[str, Any]:
         """

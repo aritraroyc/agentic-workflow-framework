@@ -1,5 +1,6 @@
 langgraph
 langchain
+langchain-core>=0.1.0
 langchain-anthropic
 langchain_openai
 openai

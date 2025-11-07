@@ -1,12 +1,22 @@
 """
-LLM prompts for UI Enhancement workflow.
+Prompt templates for UI Enhancement workflow.
 
-These prompts guide the LLM through different phases of UI enhancement:
-analysis, design, code generation, testing, and accessibility.
+This module contains LangChain PromptTemplate objects for all phases of UI enhancement:
+- Analysis of enhancement requirements
+- Design of enhancements
+- Code generation
+- Test planning
+- Accessibility improvements
+- Documentation
 """
 
-ANALYZE_UI_ENHANCEMENT_PROMPT = """
-You are an expert UI/UX architect tasked with analyzing UI enhancement requirements.
+from langchain_core.prompts import PromptTemplate
+
+# ========== Enhancement Analysis Templates ==========
+
+ANALYZE_UI_ENHANCEMENT_PROMPT = PromptTemplate(
+    input_variables=["story_requirements", "ui_structure"],
+    template="""You are an expert UI/UX architect tasked with analyzing UI enhancement requirements.
 
 Based on the following enhancement requirements, create a comprehensive analysis:
 
@@ -44,11 +54,14 @@ Return the response as a valid JSON object with these keys:
     "migration_strategy": "string",
     "components_to_update": ["string"],
     "timeline_estimate": "string"
-}}
-"""
+}}""",
+)
 
-DESIGN_UI_ENHANCEMENT_PROMPT = """
-You are an expert UI designer tasked with designing UI enhancements.
+# ========== Enhancement Design Templates ==========
+
+DESIGN_UI_ENHANCEMENT_PROMPT = PromptTemplate(
+    input_variables=["enhancement_analysis"],
+    template="""You are an expert UI designer tasked with designing UI enhancements.
 
 Based on the enhancement analysis below, create detailed design specifications:
 
@@ -75,11 +88,14 @@ Return the response as a valid JSON object with these keys:
     "animations": {{}},
     "design_tokens": {{}},
     "design_notes": "string"
-}}
-"""
+}}""",
+)
 
-GENERATE_UI_ENHANCEMENT_CODE_PROMPT = """
-You are an expert frontend developer tasked with generating code for UI enhancements.
+# ========== Enhancement Code Generation Templates ==========
+
+GENERATE_UI_ENHANCEMENT_CODE_PROMPT = PromptTemplate(
+    input_variables=["enhancement_design", "enhancement_analysis"],
+    template="""You are an expert frontend developer tasked with generating code for UI enhancements.
 
 Based on the enhancement design below, generate implementation plan:
 
@@ -108,11 +124,14 @@ Return the response as a valid JSON object with these keys:
     "migration_guide": "string",
     "breaking_changes": ["string"],
     "rollback_plan": "string"
-}}
-"""
+}}""",
+)
 
-GENERATE_UI_ENHANCEMENT_TESTS_PROMPT = """
-You are an expert QA engineer tasked with planning tests for UI enhancements.
+# ========== Enhancement Testing Templates ==========
+
+GENERATE_UI_ENHANCEMENT_TESTS_PROMPT = PromptTemplate(
+    input_variables=["enhancement_design", "enhancement_analysis"],
+    template="""You are an expert QA engineer tasked with planning tests for UI enhancements.
 
 Based on the enhancement design and code strategy below, create a testing plan:
 
@@ -149,11 +168,14 @@ Return the response as a valid JSON object with these keys:
         "cumulative_layout_shift": "string",
         "first_input_delay": "string"
     }}
-}}
-"""
+}}""",
+)
 
-IMPROVE_ACCESSIBILITY_PROMPT = """
-You are an expert in web accessibility (WCAG 2.1) tasked with improving UI accessibility.
+# ========== Accessibility Improvement Templates ==========
+
+IMPROVE_ACCESSIBILITY_PROMPT = PromptTemplate(
+    input_variables=["enhancement_design", "enhancement_analysis"],
+    template="""You are an expert in web accessibility (WCAG 2.1) tasked with improving UI accessibility.
 
 Based on the enhancement design and current UI below, create accessibility improvements:
 
@@ -183,11 +205,14 @@ Return the response as a valid JSON object with these keys:
     "focus_management": "string",
     "semantic_html": ["string"],
     "testing_tools": ["string"]
-}}
-"""
+}}""",
+)
 
-GENERATE_UI_ENHANCEMENT_DOCS_PROMPT = """
-You are a technical writer tasked with documenting UI enhancements.
+# ========== Enhancement Documentation Templates ==========
+
+GENERATE_UI_ENHANCEMENT_DOCS_PROMPT = PromptTemplate(
+    input_variables=["enhancement_design", "enhancement_analysis"],
+    template="""You are a technical writer tasked with documenting UI enhancements.
 
 Based on the enhanced UI design and implementation below, create documentation:
 
@@ -222,5 +247,5 @@ Return the response as a valid JSON object with these keys:
     "changelog": "string",
     "version_number": "string",
     "release_date": "string"
-}}
-"""
+}}""",
+)

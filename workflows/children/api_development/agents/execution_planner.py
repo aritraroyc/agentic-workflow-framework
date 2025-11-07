@@ -128,13 +128,14 @@ class ApiPlannerAgent:
                 plan_dict = self._create_fallback_plan(story, requirements)
 
             # Validate and structure the plan
+            framework = plan_dict.get("framework", "FastAPI")
             plan_output: ApiPlanOutput = {
                 "api_name": plan_dict.get("api_name", "Generated API"),
                 "api_description": plan_dict.get(
                     "api_description", "REST API generated from story"
                 ),
                 "base_path": plan_dict.get("base_path", "/api/v1"),
-                "framework": plan_dict.get("framework", "FastAPI"),
+                "framework": framework,
                 "authentication_method": plan_dict.get("authentication_method", "None"),
                 "database_type": plan_dict.get("database_type"),
                 "has_database": plan_dict.get("has_database", False),
@@ -146,6 +147,19 @@ class ApiPlannerAgent:
                 "design_decisions": plan_dict.get("design_decisions", ""),
             }
 
+            # Add Java/Spring Boot specific fields if applicable
+            if framework == "Spring Boot":
+                plan_output["java_version"] = plan_dict.get("java_version", "21")
+                plan_output["build_tool"] = plan_dict.get("build_tool", "Maven")
+                plan_output["spring_boot_starters"] = plan_dict.get("spring_boot_starters", [
+                    "spring-boot-starter-web",
+                    "spring-boot-starter-data-jpa",
+                    "spring-boot-starter-validation"
+                ])
+                plan_output["spring_security_config"] = plan_dict.get(
+                    "spring_security_config", "JWT with Spring Security 6.x"
+                )
+
             logger.info(
                 f"API plan created: {plan_output['api_name']} "
                 f"({len(plan_output.get('requirements', []))} endpoints)"
@@ -156,6 +170,24 @@ class ApiPlannerAgent:
         except Exception as e:
             logger.error(f"Error planning API: {str(e)}", exc_info=True)
             return None
+
+    def _is_java_framework(self, story: str) -> bool:
+        """
+        Detect if the story mentions Java or Spring Boot framework.
+
+        Args:
+            story: The input story text
+
+        Returns:
+            True if Java/Spring Boot is mentioned, False otherwise
+        """
+        java_keywords = [
+            "java", "spring boot", "spring framework", "maven", "gradle",
+            "jpa", "hibernate", "javax", "jakarta", "kotlin", "enterprise",
+            "java 21", "java 17", "j2ee"
+        ]
+        story_lower = story.lower()
+        return any(keyword in story_lower for keyword in java_keywords)
 
     def _create_fallback_plan(
         self, story: str, requirements: Dict[str, Any]
@@ -171,6 +203,9 @@ class ApiPlannerAgent:
             A minimal but valid API plan
         """
         logger.info("Creating fallback API plan")
+
+        # Detect if Java/Spring Boot is mentioned
+        is_java = self._is_java_framework(story)
 
         # Extract basic info from story
         api_name = requirements.get("title", "Generated API")
@@ -188,16 +223,43 @@ class ApiPlannerAgent:
             }
         ]
 
-        return {
-            "api_name": api_name,
-            "api_description": api_description,
-            "base_path": "/api/v1",
-            "framework": "FastAPI",
-            "authentication_method": "None",
-            "database_type": None,
-            "has_database": False,
-            "required_dependencies": ["fastapi", "uvicorn", "pydantic"],
-            "requirements": endpoints,
-            "architecture_notes": "Basic REST API with minimal features",
-            "design_decisions": "Created with fallback plan due to insufficient input details",
-        }
+        # Create plan based on detected framework
+        if is_java:
+            logger.info("Detected Java/Spring Boot framework in story")
+            return {
+                "api_name": api_name,
+                "api_description": api_description,
+                "base_path": "/api/v1",
+                "framework": "Spring Boot",
+                "java_version": "21",
+                "build_tool": "Maven",
+                "authentication_method": "Spring Security",
+                "database_type": "PostgreSQL",
+                "has_database": True,
+                "required_dependencies": ["spring-boot-starter-web", "spring-boot-starter-data-jpa"],
+                "spring_boot_starters": [
+                    "spring-boot-starter-web",
+                    "spring-boot-starter-data-jpa",
+                    "spring-boot-starter-security",
+                    "spring-boot-starter-validation"
+                ],
+                "spring_security_config": "JWT with Spring Security 6.x",
+                "requirements": endpoints,
+                "architecture_notes": "Spring Boot REST API with JPA and Spring Security",
+                "design_decisions": "Created with fallback plan for Java/Spring Boot framework",
+            }
+        else:
+            logger.info("Using default Python framework for fallback plan")
+            return {
+                "api_name": api_name,
+                "api_description": api_description,
+                "base_path": "/api/v1",
+                "framework": "FastAPI",
+                "authentication_method": "None",
+                "database_type": None,
+                "has_database": False,
+                "required_dependencies": ["fastapi", "uvicorn", "pydantic"],
+                "requirements": endpoints,
+                "architecture_notes": "Basic REST API with minimal features",
+                "design_decisions": "Created with fallback plan due to insufficient input details",
+            }

@@ -23,6 +23,12 @@ from workflows.parent.state import (
     WorkflowTask,
 )
 from workflows.registry.registry import WorkflowRegistry, get_registry
+from workflows.parent.prompts import (
+    PLANNER_SCOPE_ANALYSIS_TEMPLATE,
+    PLANNER_WORKFLOW_IDENTIFICATION_TEMPLATE,
+    PLANNER_RESPONSIBILITY_DEFINITION_TEMPLATE,
+    PLANNER_RISK_ASSESSMENT_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +178,16 @@ class PlannerAgent:
                     scope += f"Key requirements: {', '.join(requirements[:3])}"
                 return scope
 
-            prompt = self._create_scope_analysis_prompt(preprocessor_output)
+            requirements_json = json.dumps(requirements[:5], indent=2)
+            constraints = preprocessor_output.get("extracted_data", {}).get("constraints", [])
+            constraints_json = json.dumps(constraints[:5], indent=2)
+
+            prompt = PLANNER_SCOPE_ANALYSIS_TEMPLATE.format(
+                story_type=story_type,
+                title=title,
+                requirements_json=requirements_json,
+                constraints_json=constraints_json
+            )
             response = await asyncio.to_thread(self.llm.invoke, [{"role": "user", "content": prompt}])
             analysis_text: str = response.content if hasattr(response, "content") else str(response)
             logger.info("Story scope analysis complete")
@@ -221,8 +236,17 @@ class PlannerAgent:
 
             if not workflows and self.llm:
                 # Use LLM to identify workflows
-                prompt = self._create_workflow_identification_prompt(
-                    preprocessor_output, available_workflows
+                story_type = preprocessor_output.get("detected_story_type", "unknown")
+                title = preprocessor_output.get("metadata", {}).get("title", "Unknown")
+                requirements = preprocessor_output.get("extracted_data", {}).get("requirements", [])
+                requirements_json = json.dumps(requirements[:5], indent=2)
+                workflow_names = "\n".join([f"- {wf.name}" for wf in available_workflows[:10]])
+
+                prompt = PLANNER_WORKFLOW_IDENTIFICATION_TEMPLATE.format(
+                    story_type=story_type,
+                    title=title,
+                    requirements_json=requirements_json,
+                    available_workflows=workflow_names
                 )
                 response = await asyncio.to_thread(
                     self.llm.invoke, [{"role": "user", "content": prompt}]
@@ -307,15 +331,18 @@ class PlannerAgent:
         try:
             if not self.llm:
                 # Heuristic responsibilities
-                story_type = preprocessor_output.get("detected_story_type", "unknown")
                 if "api" in workflow_name.lower():
                     return "Design and implement API endpoints, handle authentication, and create tests"
                 elif "ui" in workflow_name.lower():
                     return "Design UI components, implement responsive layouts, and ensure accessibility"
                 return f"Execute {workflow_name} workflow"
 
-            prompt = self._create_responsibility_prompt(
-                workflow_name, preprocessor_output
+            requirements = preprocessor_output.get("extracted_data", {}).get("requirements", [])
+            requirements_json = json.dumps(requirements[:5], indent=2)
+
+            prompt = PLANNER_RESPONSIBILITY_DEFINITION_TEMPLATE.format(
+                workflow_name=workflow_name,
+                requirements_json=requirements_json
             )
             response = await asyncio.to_thread(self.llm.invoke, [{"role": "user", "content": prompt}])
             resp_text: str = response.content if hasattr(response, "content") else str(response)
@@ -475,8 +502,13 @@ class PlannerAgent:
 
             # LLM-based risk assessment
             if self.llm and len(workflow_tasks) > 0:
-                prompt = self._create_risk_assessment_prompt(
-                    workflow_tasks, preprocessor_output
+                task_names = ", ".join([t["workflow_name"] for t in workflow_tasks])
+                constraints = preprocessor_output.get("extracted_data", {}).get("constraints", [])
+                constraints_json = json.dumps(constraints[:5], indent=2)
+
+                prompt = PLANNER_RISK_ASSESSMENT_TEMPLATE.format(
+                    task_names=task_names,
+                    constraints_json=constraints_json
                 )
                 response = await asyncio.to_thread(
                     self.llm.invoke, [{"role": "user", "content": prompt}]
@@ -492,87 +524,6 @@ class PlannerAgent:
             return []
 
     # ========== Helper Methods ==========
-
-    def _create_scope_analysis_prompt(self, preprocessor_output: PreprocessorOutput) -> str:
-        """Create LLM prompt for scope analysis."""
-        story_type = preprocessor_output.get("detected_story_type", "unknown")
-        title = preprocessor_output.get("metadata", {}).get("title", "Unknown")
-        requirements = preprocessor_output.get("extracted_data", {}).get(
-            "requirements", []
-        )
-        constraints = preprocessor_output.get("extracted_data", {}).get(
-            "constraints", []
-        )
-
-        return f"""Analyze the scope of this {story_type} story:
-
-Title: {title}
-
-Requirements:
-{json.dumps(requirements[:5], indent=2)}
-
-Constraints:
-{json.dumps(constraints[:5], indent=2)}
-
-Provide a concise analysis of:
-1. Overall scope and scale
-2. Technical complexity
-3. Key focus areas
-4. Dependencies or integrations needed
-
-Keep response concise (2-3 sentences)."""
-
-    def _create_workflow_identification_prompt(
-        self, preprocessor_output: PreprocessorOutput, available_workflows: List[Any]
-    ) -> str:
-        """Create LLM prompt for workflow identification."""
-        story_type = preprocessor_output.get("detected_story_type", "unknown")
-        title = preprocessor_output.get("metadata", {}).get("title", "Unknown")
-        requirements = preprocessor_output.get("extracted_data", {}).get(
-            "requirements", []
-        )
-
-        workflow_names = [f"- {wf.name}" for wf in available_workflows[:10]]
-
-        return f"""Given this {story_type} story, identify which workflows are needed:
-
-Story: {title}
-Requirements: {json.dumps(requirements[:5], indent=2)}
-
-Available workflows:
-{chr(10).join(workflow_names)}
-
-Return ONLY a JSON array of workflow names, e.g. ["workflow1", "workflow2"]"""
-
-    def _create_responsibility_prompt(
-        self, workflow_name: str, preprocessor_output: PreprocessorOutput
-    ) -> str:
-        """Create LLM prompt for responsibility definition."""
-        requirements = preprocessor_output.get("extracted_data", {}).get(
-            "requirements", []
-        )
-
-        return f"""Define specific responsibilities for the {workflow_name} workflow in this story.
-
-Requirements:
-{json.dumps(requirements[:5], indent=2)}
-
-Provide 2-3 specific, actionable responsibilities this workflow should handle."""
-
-    def _create_risk_assessment_prompt(
-        self, workflow_tasks: List[WorkflowTask], preprocessor_output: PreprocessorOutput
-    ) -> str:
-        """Create LLM prompt for risk assessment."""
-        task_names = [t["workflow_name"] for t in workflow_tasks]
-        constraints = preprocessor_output.get("extracted_data", {}).get(
-            "constraints", []
-        )
-
-        return f"""Identify risks for executing these workflows: {', '.join(task_names)}
-
-Constraints: {json.dumps(constraints[:5], indent=2)}
-
-Return JSON array with objects like {{"factor": "...", "severity": "low|medium|high", "mitigation": "..."}}"""
 
     def _create_planning_rationale(
         self, story_scope: str, required_workflows: List[str], strategy: str

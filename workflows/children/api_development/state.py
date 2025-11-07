@@ -27,13 +27,18 @@ class ApiPlanOutput(TypedDict, total=False):
     api_description: str
     base_path: str
     requirements: List[ApiRequirement]
-    framework: str  # FastAPI, Flask, Django
-    authentication_method: str  # JWT, OAuth2, API Key, None
+    framework: str  # FastAPI, Flask, Django, Spring Boot
+    authentication_method: str  # JWT, OAuth2, API Key, Spring Security, None
     database_type: Optional[str]  # PostgreSQL, MongoDB, SQLite
     has_database: bool
     required_dependencies: List[str]
     architecture_notes: str
     design_decisions: str
+    # Java/Spring Boot specific fields (optional)
+    java_version: str  # "17" or "21" (only for Spring Boot)
+    build_tool: str  # "Maven" or "Gradle" (only for Spring Boot)
+    spring_boot_starters: List[str]  # Spring Boot starter dependencies
+    spring_security_config: str  # Spring Security configuration approach
 
 
 class ApiDesignOutput(TypedDict, total=False):

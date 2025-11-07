@@ -57,7 +57,14 @@ class APIEnhancementPlannerAgent:
 
             # Call the LLM
             logger.debug(f"Calling LLM with prompt length: {len(prompt)}")
-            response = await asyncio.to_thread(self.llm_client.invoke, prompt)
+            response = await asyncio.to_thread(
+                self.llm_client.invoke,
+                [{
+                    "role": "system",
+                    "content": "You are an expert API architect analyzing enhancement requirements. Return ONLY valid JSON."
+                },
+                {"role": "user", "content": prompt}]
+            )
             response_text = response.content if hasattr(response, 'content') else str(response)
 
             # Parse the JSON response
@@ -76,8 +83,9 @@ class APIEnhancementPlannerAgent:
 
         except Exception as e:
             logger.error(f"Error analyzing enhancements: {str(e)}")
+            story_text = story_requirements.get("description", "")
             return {
-                "analysis": self._generate_fallback_analysis(story_requirements),
+                "analysis": self._generate_fallback_analysis(story_requirements, story_text),
                 "errors": [str(e)],
                 "success": False,
             }
@@ -106,21 +114,44 @@ class APIEnhancementPlannerAgent:
             logger.warning("Could not extract valid JSON from response")
             return {}
 
+    def _is_java_framework(self, text: str) -> bool:
+        """
+        Detect if the text mentions Java or Spring Boot framework.
+
+        Args:
+            text: The text to analyze
+
+        Returns:
+            True if Java/Spring Boot is mentioned, False otherwise
+        """
+        java_keywords = [
+            "java", "spring boot", "spring framework", "maven", "gradle",
+            "jpa", "hibernate", "javax", "jakarta", "kotlin", "enterprise",
+            "java 21", "java 17", "j2ee"
+        ]
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in java_keywords)
+
     def _generate_fallback_analysis(
-        self, story_requirements: Dict[str, Any]
+        self, story_requirements: Dict[str, Any], story_text: str = ""
     ) -> Dict[str, Any]:
         """
         Generate a fallback analysis if LLM fails.
 
         Args:
             story_requirements: Requirements from the story
+            story_text: Raw story text for framework detection
 
         Returns:
             A basic analysis structure
         """
         logger.info("Generating fallback enhancement analysis")
 
-        return {
+        # Detect if Java/Spring Boot is mentioned
+        is_java = self._is_java_framework(story_text) or \
+                  self._is_java_framework(str(story_requirements.get("description", "")))
+
+        base_analysis = {
             "current_api_summary": "Existing RESTful API",
             "enhancements": [
                 {
@@ -157,3 +188,23 @@ class APIEnhancementPlannerAgent:
             "timeline_estimate": "3-4 weeks",
             "dependencies": ["Redis for caching", "Message queue for webhooks"],
         }
+
+        # Add Java/Spring Boot specific fields if detected
+        if is_java:
+            logger.info("Detected Java/Spring Boot framework in enhancement story")
+            base_analysis["current_language"] = "Java"
+            base_analysis["current_framework"] = "Spring Boot"
+            base_analysis["java_version"] = "21"
+            base_analysis["build_tool"] = "Maven"
+            base_analysis["spring_boot_starters"] = [
+                "spring-boot-starter-web",
+                "spring-boot-starter-data-jpa",
+                "spring-boot-starter-security"
+            ]
+            base_analysis["spring_security_config"] = "JWT with Spring Security 6.x"
+        else:
+            logger.info("Using default Python framework for enhancement analysis")
+            base_analysis["current_language"] = "Python"
+            base_analysis["current_framework"] = "FastAPI"
+
+        return base_analysis
