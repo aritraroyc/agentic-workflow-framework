@@ -125,7 +125,7 @@ The framework uses TypedDict for LangGraph compatibility:
 ```python
 # Parent workflow state
 EnhancedWorkflowState = TypedDict({
-    "story": str,
+    "input_story": str,
     "story_requirements": dict,
     "story_type": str,
     "preprocessor_output": dict,
@@ -133,6 +133,7 @@ EnhancedWorkflowState = TypedDict({
     "workflow_tasks": list[WorkflowTask],
     "task_results": list[WorkflowExecutionResult],
     "execution_log": list[dict],
+    "registry": Optional[Any],  # Workflow registry for child invocation
 })
 
 # Child workflow state (example: API Development)
@@ -313,13 +314,51 @@ llm_client = get_default_llm_client()
 # - OPENAI_API_KEY for OpenAI (fallback)
 ```
 
-### Prompt Structure
+### LLM Invocation Pattern
 
-Each agent uses specialized prompts:
+**CRITICAL**: All LLM calls must use the `asyncio.to_thread` wrapper with message dict format:
 
 ```python
-# Example: API Planning Prompt
-PLAN_API_PROMPT = """
+import asyncio
+from typing import List
+
+# Correct pattern for LLM calls
+response = await asyncio.to_thread(
+    self.llm_client.invoke,
+    [
+        {"role": "system", "content": "You are an expert API designer..."},
+        {"role": "user", "content": prompt_text},
+    ]
+)
+
+# Extract response content
+response_text = response.content if hasattr(response, 'content') else str(response)
+```
+
+**Why this pattern?**
+- The LLM client is synchronous (not async) so `ainvoke()` doesn't exist
+- `asyncio.to_thread()` safely runs the sync function in a thread pool
+- Message dict format with role assignments is required by the LLM client
+- Plain string prompts will result in empty responses
+
+**ANTI-PATTERN (DO NOT USE)**:
+```python
+# ❌ WRONG: Will get "No attribute 'ainvoke'" error
+response = await self.llm_client.ainvoke(prompt)
+
+# ❌ WRONG: Will get empty responses, then JSON parse errors
+response = await asyncio.to_thread(self.llm_client.invoke, plain_string_prompt)
+```
+
+### Prompt Structure
+
+Each agent uses specialized prompts with message dict format:
+
+```python
+# Example: API Planning Prompt with correct message format
+import asyncio
+
+api_planning_prompt = """
 Analyze these API requirements and create a comprehensive plan:
 {requirements}
 
@@ -331,6 +370,15 @@ Provide JSON output with:
 - error_handling
 - scalability_considerations
 """
+
+# Proper invocation
+response = await asyncio.to_thread(
+    self.llm_client.invoke,
+    [
+        {"role": "system", "content": "You are an expert API architect with 10+ years of experience..."},
+        {"role": "user", "content": api_planning_prompt},
+    ]
+)
 ```
 
 ### JSON Parsing with Fallback
@@ -426,7 +474,7 @@ workflows:
 ### Async/Await Usage
 
 - All I/O operations are async
-- LLM calls use `ainvoke()`
+- LLM calls use `asyncio.to_thread()` wrapper (see [LLM Integration Pattern](#llm-invocation-pattern))
 - Parallel task execution with `asyncio.gather()`
 
 ### Timeout Configuration

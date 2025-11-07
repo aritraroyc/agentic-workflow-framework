@@ -213,7 +213,7 @@ async def run_workflow():
 
     # Execute with a story
     result = await parent_workflow.ainvoke({
-        "story": "# API Development\nCreate a User Management API..."
+        "input_story": "# API Development\nCreate a User Management API..."
     })
 
     return result
@@ -324,7 +324,7 @@ See [Adding New Workflows Guide](docs/adding_workflows.md) for step-by-step inst
 
 ## 📊 Test Coverage
 
-Current test suite: **314 tests** across unit and integration tests
+Current test suite: **315 tests** across unit and integration tests
 
 - Unit Tests: Core functionality validation
 - Integration Tests: End-to-end workflow execution
@@ -341,11 +341,12 @@ pytest tests/ -v --cov=workflows
 
 ```python
 {
-    "story": str,                          # Main requirement description
+    "input_story": str,                    # Main requirement description
     "story_requirements": dict,            # Structured requirements
     "story_type": str,                     # Type: api_development, ui_development, etc.
     "preprocessor_output": dict,           # Preprocessor output
     "planner_output": dict,                # Planner output
+    "registry": Optional[WorkflowRegistry] # Workflow registry (optional)
 }
 ```
 

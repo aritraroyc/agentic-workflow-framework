@@ -51,7 +51,34 @@ agentic-workflow-framework/
 - All state management uses TypedDict for LangGraph compatibility
 - Agents are separate classes for better maintainability
 - Child workflows must inherit from BaseChildWorkflow
-- All LLM calls should be async and include error handling
+- All LLM calls must use `asyncio.to_thread()` wrapper with message dict format (CRITICAL)
+- State field is `input_story`, not `story` (CRITICAL)
+
+## CRITICAL LLM Invocation Pattern
+
+**All LLM calls must follow this exact pattern** (not `ainvoke()`):
+
+```python
+import asyncio
+
+# Correct pattern - ALWAYS use asyncio.to_thread with message dict format
+response = await asyncio.to_thread(
+    self.llm_client.invoke,
+    [
+        {"role": "system", "content": "You are an expert..."},
+        {"role": "user", "content": prompt_text},
+    ]
+)
+
+# Extract response
+response_text = response.content if hasattr(response, 'content') else str(response)
+```
+
+**Why?** LLM client is synchronous (no `ainvoke()` method), and it requires message dicts with role assignments.
+
+**Anti-patterns to avoid:**
+- ❌ `await self.llm_client.ainvoke(prompt)` - AttributeError
+- ❌ `await asyncio.to_thread(self.llm_client.invoke, "plain string")` - Empty responses
 ```
 
 ---

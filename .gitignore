@@ -135,3 +135,6 @@ outputs/
 artifacts/
 .env.local
 config/secrets.yaml
+
+# Claude code
+CLAUDE.md

@@ -15,7 +15,7 @@ The parent workflow accepts an `EnhancedWorkflowState`:
 
 ```python
 {
-    "story": str,                          # Main requirement description
+    "input_story": str,                    # Main requirement description
     "story_requirements": dict,            # Structured requirements (optional)
     "story_type": str,                     # Workflow type (optional)
     "preprocessor_output": dict,           # Preprocessor output (internal)
@@ -23,6 +23,7 @@ The parent workflow accepts an `EnhancedWorkflowState`:
     "workflow_tasks": list[WorkflowTask],  # Task list (internal)
     "task_results": list[dict],            # Task results (internal)
     "execution_log": list[dict],           # Execution log (internal)
+    "registry": Optional[Any],             # Workflow registry (internal)
 }
 ```
 
@@ -64,7 +65,7 @@ async def execute_workflow():
 
     # Execute
     result = await parent.ainvoke({
-        "story": "# API Development\nCreate a User Management API with JWT auth..."
+        "input_story": "# API Development\nCreate a User Management API with JWT auth..."
     })
 
     return result
@@ -90,7 +91,7 @@ Base URL: `http://localhost:8001` (default)
 
 ```json
 {
-    "story": "Add batch processing and webhooks to existing API",
+    "input_story": "Add batch processing and webhooks to existing API",
     "story_requirements": {
         "title": "Batch Processing Feature",
         "description": "Enable batch operations for performance",
