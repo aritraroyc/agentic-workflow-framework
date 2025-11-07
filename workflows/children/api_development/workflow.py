@@ -209,6 +209,60 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 "error_type": type(e).__name__,
             }
 
+    # ========== Helper Methods ==========
+
+    def _extract_json_from_response(self, response_text: str) -> Dict[str, Any]:
+        """
+        Extract JSON from LLM response, handling various formats.
+
+        Handles:
+        - Pure JSON responses
+        - JSON wrapped in markdown code blocks (```json {...}```)
+        - JSON with surrounding text
+
+        Args:
+            response_text: Raw response from LLM
+
+        Returns:
+            Parsed JSON dictionary, or empty dict if extraction fails
+        """
+        if not response_text or not response_text.strip():
+            logger.debug("Response text is empty")
+            return {}
+
+        # Try direct JSON parsing first
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract JSON from markdown code blocks
+        import re
+        markdown_pattern = r'```(?:json)?\s*\n?([\s\S]*?)\n?```'
+        matches = re.findall(markdown_pattern, response_text)
+        if matches:
+            for match in matches:
+                try:
+                    logger.debug("Found JSON in markdown code block")
+                    return json.loads(match)
+                except json.JSONDecodeError:
+                    continue
+
+        # Try to extract JSON by finding braces
+        start = response_text.find("{")
+        end = response_text.rfind("}") + 1
+
+        if start != -1 and end > start:
+            try:
+                json_str = response_text[start:end]
+                logger.debug("Extracted JSON from response text")
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning(f"Could not extract valid JSON from response (first 200 chars): {response_text[:200]}")
+        return {}
+
     # ========== Internal Node Functions ==========
 
     async def _planning_node(self, state: ApiDevelopmentState) -> ApiDevelopmentState:
@@ -270,14 +324,17 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 ]
             )
 
-            try:
-                design_dict = json.loads(response)
+            logger.debug(f"Design response (first 300 chars): {response[:300]}")
+
+            design_dict = self._extract_json_from_response(response)
+
+            if design_dict:
                 state["api_design"] = design_dict
                 state["design_completed"] = True
                 logger.info("API design completed")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse design JSON: {str(e)}")
-                state["design_errors"].append(f"JSON parsing error: {str(e)}")
+            else:
+                logger.warning("Design response did not contain valid JSON")
+                state["design_errors"].append("Failed to extract valid JSON from design response")
 
             return state
 
@@ -314,22 +371,25 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 [
                     {
                         "role": "system",
-                        "content": f"You are an expert {framework} developer. Generate production-ready Python code. Return ONLY valid JSON.",
+                        "content": f"You are an expert {framework} developer. Generate production-ready code. Return ONLY valid JSON.",
                     },
                     {"role": "user", "content": prompt},
                 ]
             )
 
-            try:
-                code_dict = json.loads(response)
+            logger.debug(f"Code generation response (first 300 chars): {response[:300]}")
+
+            code_dict = self._extract_json_from_response(response)
+
+            if code_dict:
                 # Store the generated code (in production, would write to files)
                 state["code_output"] = code_dict
                 state["code_generation_completed"] = True
                 state["all_artifacts"].extend(code_dict.get("generated_files", []))
                 logger.info("Code generation completed")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse code JSON: {str(e)}")
-                state["code_generation_errors"].append(f"JSON parsing error: {str(e)}")
+            else:
+                logger.warning("Code generation response did not contain valid JSON")
+                state["code_generation_errors"].append("Failed to extract valid JSON from code generation response")
 
             return state
 
@@ -365,21 +425,24 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 [
                     {
                         "role": "system",
-                        "content": "You are an expert Python test engineer. Generate comprehensive pytest tests. Return ONLY valid JSON.",
+                        "content": "You are an expert test engineer. Generate comprehensive tests. Return ONLY valid JSON.",
                     },
                     {"role": "user", "content": prompt},
                 ]
             )
 
-            try:
-                test_dict = json.loads(response)
+            logger.debug(f"Test generation response (first 300 chars): {response[:300]}")
+
+            test_dict = self._extract_json_from_response(response)
+
+            if test_dict:
                 state["test_output"] = test_dict
                 state["testing_completed"] = True
                 state["all_artifacts"].extend(test_dict.get("generated_tests", []))
                 logger.info("Test generation completed")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse test JSON: {str(e)}")
-                state["testing_errors"].append(f"JSON parsing error: {str(e)}")
+            else:
+                logger.warning("Test generation response did not contain valid JSON")
+                state["testing_errors"].append("Failed to extract valid JSON from test generation response")
 
             return state
 
@@ -424,15 +487,18 @@ class ApiDevelopmentWorkflow(BaseChildWorkflow):
                 ]
             )
 
-            try:
-                docs_dict = json.loads(response)
+            logger.debug(f"Documentation response (first 300 chars): {response[:300]}")
+
+            docs_dict = self._extract_json_from_response(response)
+
+            if docs_dict:
                 state["docs_output"] = docs_dict
                 state["documentation_completed"] = True
                 state["all_artifacts"].extend(docs_dict.get("generated_docs", []))
                 logger.info("Documentation generation completed")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse docs JSON: {str(e)}")
-                state["documentation_errors"].append(f"JSON parsing error: {str(e)}")
+            else:
+                logger.warning("Documentation response did not contain valid JSON")
+                state["documentation_errors"].append("Failed to extract valid JSON from documentation response")
 
             return state
 

@@ -26,14 +26,14 @@ class TestApiDevelopmentJavaDetection:
         agent = ApiPlannerAgent()
 
         story = "Build a Java REST API using Spring Boot"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_spring_boot_keyword_detection(self):
         """Test detection with Spring Boot mention."""
         agent = ApiPlannerAgent()
 
         story = "Create a Spring Boot application with REST endpoints"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_maven_gradle_detection(self):
         """Test detection with build tool mentions."""
@@ -42,15 +42,15 @@ class TestApiDevelopmentJavaDetection:
         maven_story = "Use Maven to build the Java API"
         gradle_story = "Use Gradle for the Spring Boot project"
 
-        assert agent._is_java_framework(maven_story) is True
-        assert agent._is_java_framework(gradle_story) is True
+        assert agent._is_python_framework(maven_story) is False
+        assert agent._is_python_framework(gradle_story) is False
 
     def test_python_not_detected_as_java(self):
-        """Test that Python frameworks are not detected as Java."""
+        """Test that Python frameworks are detected as Python."""
         agent = ApiPlannerAgent()
 
         story = "Create a FastAPI Python application"
-        assert agent._is_java_framework(story) is False
+        assert agent._is_python_framework(story) is True
 
     def test_java_fallback_plan_structure(self):
         """Test fallback plan includes Spring Boot configuration."""
@@ -101,14 +101,14 @@ class TestApiEnhancementJavaDetection:
         agent = APIEnhancementPlannerAgent()
 
         story = "Enhance a Java REST API"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_spring_framework_detection(self):
         """Test detection with Spring Framework mention."""
         agent = APIEnhancementPlannerAgent()
 
         story = "Add new features to Spring Framework application"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_jpa_hibernate_detection(self):
         """Test detection with ORM framework mentions."""
@@ -117,8 +117,8 @@ class TestApiEnhancementJavaDetection:
         jpa_story = "Enhance the API using JPA entities"
         hibernate_story = "Upgrade the Hibernate-based API"
 
-        assert agent._is_java_framework(jpa_story) is True
-        assert agent._is_java_framework(hibernate_story) is True
+        assert agent._is_python_framework(jpa_story) is False
+        assert agent._is_python_framework(hibernate_story) is False
 
     def test_java_enhancement_fallback_analysis(self):
         """Test fallback analysis includes Java/Spring Boot configuration."""
@@ -264,25 +264,25 @@ class TestMixedScenarios:
     """Test handling of edge cases and mixed scenarios."""
 
     def test_kotlin_detected_as_java(self):
-        """Test Kotlin (Java ecosystem) is detected as Java framework."""
+        """Test Kotlin (Java ecosystem) is not detected as Python."""
         agent = ApiPlannerAgent()
 
         story = "Create a Kotlin REST API with Spring Boot"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_enterprise_java_detected(self):
-        """Test enterprise Java keywords are detected."""
+        """Test enterprise Java keywords are not detected as Python."""
         agent = ApiPlannerAgent()
 
         story = "Build enterprise Java application with J2EE patterns"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_jakarta_namespace_detected(self):
-        """Test Jakarta namespace (Java EE) is detected."""
+        """Test Jakarta namespace (Java EE) is not detected as Python."""
         agent = APIEnhancementPlannerAgent()
 
         story = "Migrate from javax to jakarta namespace in Java API"
-        assert agent._is_java_framework(story) is True
+        assert agent._is_python_framework(story) is False
 
     def test_case_insensitive_detection(self):
         """Test framework detection is case insensitive."""
@@ -291,5 +291,5 @@ class TestMixedScenarios:
         upper_story = "BUILD A JAVA SPRING BOOT API"
         mixed_case_story = "Build a Java Spring Boot Api"
 
-        assert agent._is_java_framework(upper_story) is True
-        assert agent._is_java_framework(mixed_case_story) is True
+        assert agent._is_python_framework(upper_story) is False
+        assert agent._is_python_framework(mixed_case_story) is False

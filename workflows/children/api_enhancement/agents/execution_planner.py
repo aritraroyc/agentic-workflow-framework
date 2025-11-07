@@ -114,29 +114,31 @@ class APIEnhancementPlannerAgent:
             logger.warning("Could not extract valid JSON from response")
             return {}
 
-    def _is_java_framework(self, text: str) -> bool:
+    def _is_python_framework(self, text: str) -> bool:
         """
-        Detect if the text mentions Java or Spring Boot framework.
+        Detect if the text explicitly mentions Python framework.
 
         Args:
             text: The text to analyze
 
         Returns:
-            True if Java/Spring Boot is mentioned, False otherwise
+            True if Python/Python frameworks explicitly mentioned, False otherwise
         """
-        java_keywords = [
-            "java", "spring boot", "spring framework", "maven", "gradle",
-            "jpa", "hibernate", "javax", "jakarta", "kotlin", "enterprise",
-            "java 21", "java 17", "j2ee"
+        python_keywords = [
+            "python", "fastapi", "flask", "django", "async", "asyncio",
+            "pip", "requirements.txt", "poetry", "uvicorn", "gunicorn",
+            "pytest", "pydantic", "sqlalchemy"
         ]
         text_lower = text.lower()
-        return any(keyword in text_lower for keyword in java_keywords)
+        return any(keyword in text_lower for keyword in python_keywords)
 
     def _generate_fallback_analysis(
         self, story_requirements: Dict[str, Any], story_text: str = ""
     ) -> Dict[str, Any]:
         """
         Generate a fallback analysis if LLM fails.
+
+        Defaults to Java/Spring Boot unless Python is explicitly mentioned.
 
         Args:
             story_requirements: Requirements from the story
@@ -147,9 +149,9 @@ class APIEnhancementPlannerAgent:
         """
         logger.info("Generating fallback enhancement analysis")
 
-        # Detect if Java/Spring Boot is mentioned
-        is_java = self._is_java_framework(story_text) or \
-                  self._is_java_framework(str(story_requirements.get("description", "")))
+        # Detect if Python is explicitly mentioned (prefer Python if mentioned)
+        is_python = self._is_python_framework(story_text) or \
+                   self._is_python_framework(str(story_requirements.get("description", "")))
 
         base_analysis = {
             "current_api_summary": "Existing RESTful API",
@@ -189,9 +191,13 @@ class APIEnhancementPlannerAgent:
             "dependencies": ["Redis for caching", "Message queue for webhooks"],
         }
 
-        # Add Java/Spring Boot specific fields if detected
-        if is_java:
-            logger.info("Detected Java/Spring Boot framework in enhancement story")
+        # Default to Java/Spring Boot unless Python is explicitly mentioned
+        if is_python:
+            logger.info("Detected Python framework explicitly in enhancement story")
+            base_analysis["current_language"] = "Python"
+            base_analysis["current_framework"] = "FastAPI"
+        else:
+            logger.info("Defaulting to Java/Spring Boot framework (no explicit Python mention)")
             base_analysis["current_language"] = "Java"
             base_analysis["current_framework"] = "Spring Boot"
             base_analysis["java_version"] = "21"
@@ -202,9 +208,5 @@ class APIEnhancementPlannerAgent:
                 "spring-boot-starter-security"
             ]
             base_analysis["spring_security_config"] = "JWT with Spring Security 6.x"
-        else:
-            logger.info("Using default Python framework for enhancement analysis")
-            base_analysis["current_language"] = "Python"
-            base_analysis["current_framework"] = "FastAPI"
 
         return base_analysis

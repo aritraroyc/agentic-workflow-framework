@@ -206,6 +206,62 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
                 "error_type": type(e).__name__,
             }
 
+    # ========== Helper Methods ==========
+
+    def _extract_json_from_response(self, response_text: str) -> Dict[str, Any]:
+        """
+        Extract JSON from LLM response, handling various formats.
+
+        Handles:
+        - Pure JSON responses
+        - JSON wrapped in markdown code blocks (```json {...}```)
+        - JSON with surrounding text
+
+        Args:
+            response_text: Raw response from LLM
+
+        Returns:
+            Parsed JSON dictionary, or empty dict if extraction fails
+        """
+        if not response_text or not response_text.strip():
+            logger.debug("Response text is empty")
+            return {}
+
+        # Try direct JSON parsing first
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract JSON from markdown code blocks
+        import re
+        markdown_pattern = r'```(?:json)?\s*\n?([\s\S]*?)\n?```'
+        matches = re.findall(markdown_pattern, response_text)
+        if matches:
+            for match in matches:
+                try:
+                    logger.debug("Found JSON in markdown code block")
+                    return json.loads(match)
+                except json.JSONDecodeError:
+                    continue
+
+        # Try to extract JSON by finding braces
+        start = response_text.find("{")
+        end = response_text.rfind("}") + 1
+
+        if start != -1 and end > start:
+            try:
+                json_str = response_text[start:end]
+                logger.debug("Extracted JSON from response text")
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning(f"Could not extract valid JSON from response (first 200 chars): {response_text[:200]}")
+        return {}
+
+    # ========== Internal Node Functions ==========
+
     async def _analysis_node(self, state: ApiEnhancementState) -> ApiEnhancementState:
         """
         Analysis phase: Analyze enhancement requirements.
@@ -258,15 +314,19 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
             response = await asyncio.to_thread(self.llm_client.invoke, prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
 
-            try:
-                design = json.loads(response_text)
-            except json.JSONDecodeError:
-                design = self._extract_json(response_text)
+            logger.debug(f"Design response (first 300 chars): {response_text[:300]}")
 
-            state["enhancement_design"] = design
-            state["design_completed"] = True
-            state["execution_notes"] += "Design phase completed. "
-            logger.info("Enhancement design completed")
+            design = self._extract_json_from_response(response_text)
+
+            if design:
+                state["enhancement_design"] = design
+                state["design_completed"] = True
+                state["execution_notes"] += "Design phase completed. "
+                logger.info("Enhancement design completed")
+            else:
+                logger.warning("Design response did not contain valid JSON")
+                state["design_errors"].append("Failed to extract valid JSON from design response")
+                state["design_completed"] = True
 
         except Exception as e:
             logger.error(f"Error in design phase: {str(e)}")
@@ -293,15 +353,19 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
             response = await asyncio.to_thread(self.llm_client.invoke, prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
 
-            try:
-                code_output = json.loads(response_text)
-            except json.JSONDecodeError:
-                code_output = self._extract_json(response_text)
+            logger.debug(f"Code generation response (first 300 chars): {response_text[:300]}")
 
-            state["enhancement_code"] = code_output
-            state["code_generation_completed"] = True
-            state["execution_notes"] += "Code generation completed. "
-            logger.info("Code generation completed")
+            code_output = self._extract_json_from_response(response_text)
+
+            if code_output:
+                state["enhancement_code"] = code_output
+                state["code_generation_completed"] = True
+                state["execution_notes"] += "Code generation completed. "
+                logger.info("Code generation completed")
+            else:
+                logger.warning("Code generation response did not contain valid JSON")
+                state["code_generation_errors"].append("Failed to extract valid JSON from code generation response")
+                state["code_generation_completed"] = True
 
         except Exception as e:
             logger.error(f"Error in code generation: {str(e)}")
@@ -328,15 +392,19 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
             response = await asyncio.to_thread(self.llm_client.invoke, prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
 
-            try:
-                test_output = json.loads(response_text)
-            except json.JSONDecodeError:
-                test_output = self._extract_json(response_text)
+            logger.debug(f"Testing response (first 300 chars): {response_text[:300]}")
 
-            state["enhancement_tests"] = test_output
-            state["testing_completed"] = True
-            state["execution_notes"] += "Testing phase completed. "
-            logger.info("Testing phase completed")
+            test_output = self._extract_json_from_response(response_text)
+
+            if test_output:
+                state["enhancement_tests"] = test_output
+                state["testing_completed"] = True
+                state["execution_notes"] += "Testing phase completed. "
+                logger.info("Testing phase completed")
+            else:
+                logger.warning("Testing response did not contain valid JSON")
+                state["testing_errors"].append("Failed to extract valid JSON from testing response")
+                state["testing_completed"] = True
 
         except Exception as e:
             logger.error(f"Error in testing phase: {str(e)}")
@@ -363,15 +431,19 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
             response = await asyncio.to_thread(self.llm_client.invoke, prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
 
-            try:
-                monitoring_output = json.loads(response_text)
-            except json.JSONDecodeError:
-                monitoring_output = self._extract_json(response_text)
+            logger.debug(f"Monitoring response (first 300 chars): {response_text[:300]}")
 
-            state["monitoring_setup"] = monitoring_output
-            state["monitoring_completed"] = True
-            state["execution_notes"] += "Monitoring setup completed. "
-            logger.info("Monitoring setup completed")
+            monitoring_output = self._extract_json_from_response(response_text)
+
+            if monitoring_output:
+                state["monitoring_setup"] = monitoring_output
+                state["monitoring_completed"] = True
+                state["execution_notes"] += "Monitoring setup completed. "
+                logger.info("Monitoring setup completed")
+            else:
+                logger.warning("Monitoring response did not contain valid JSON")
+                state["monitoring_errors"].append("Failed to extract valid JSON from monitoring response")
+                state["monitoring_completed"] = True
 
         except Exception as e:
             logger.error(f"Error in monitoring setup: {str(e)}")
@@ -398,14 +470,18 @@ class APIEnhancementWorkflow(BaseChildWorkflow):
             response = await asyncio.to_thread(self.llm_client.invoke, prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
 
-            try:
-                docs_output = json.loads(response_text)
-            except json.JSONDecodeError:
-                docs_output = self._extract_json(response_text)
+            logger.debug(f"Documentation response (first 300 chars): {response_text[:300]}")
 
-            state["execution_notes"] += "Documentation completed. "
-            state["status"] = "success"
-            logger.info("Documentation phase completed")
+            docs_output = self._extract_json_from_response(response_text)
+
+            if docs_output:
+                state["execution_notes"] += "Documentation completed. "
+                state["status"] = "success"
+                logger.info("Documentation phase completed")
+            else:
+                logger.warning("Documentation response did not contain valid JSON")
+                state["execution_notes"] += "Documentation phase completed with extraction warnings. "
+                state["status"] = "partial"
 
         except Exception as e:
             logger.error(f"Error in documentation phase: {str(e)}")

@@ -171,29 +171,31 @@ class ApiPlannerAgent:
             logger.error(f"Error planning API: {str(e)}", exc_info=True)
             return None
 
-    def _is_java_framework(self, story: str) -> bool:
+    def _is_python_framework(self, story: str) -> bool:
         """
-        Detect if the story mentions Java or Spring Boot framework.
+        Detect if the story explicitly mentions Python framework.
 
         Args:
             story: The input story text
 
         Returns:
-            True if Java/Spring Boot is mentioned, False otherwise
+            True if Python/Python frameworks explicitly mentioned, False otherwise
         """
-        java_keywords = [
-            "java", "spring boot", "spring framework", "maven", "gradle",
-            "jpa", "hibernate", "javax", "jakarta", "kotlin", "enterprise",
-            "java 21", "java 17", "j2ee"
+        python_keywords = [
+            "python", "fastapi", "flask", "django", "async", "asyncio",
+            "pip", "requirements.txt", "poetry", "uvicorn", "gunicorn",
+            "pytest", "pydantic", "sqlalchemy"
         ]
         story_lower = story.lower()
-        return any(keyword in story_lower for keyword in java_keywords)
+        return any(keyword in story_lower for keyword in python_keywords)
 
     def _create_fallback_plan(
         self, story: str, requirements: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Create a fallback plan when LLM fails or returns invalid JSON.
+
+        Defaults to Java/Spring Boot unless Python is explicitly mentioned.
 
         Args:
             story: The input story
@@ -204,8 +206,8 @@ class ApiPlannerAgent:
         """
         logger.info("Creating fallback API plan")
 
-        # Detect if Java/Spring Boot is mentioned
-        is_java = self._is_java_framework(story)
+        # Detect if Python is explicitly mentioned (prefer Python if mentioned)
+        is_python = self._is_python_framework(story)
 
         # Extract basic info from story
         api_name = requirements.get("title", "Generated API")
@@ -224,8 +226,24 @@ class ApiPlannerAgent:
         ]
 
         # Create plan based on detected framework
-        if is_java:
-            logger.info("Detected Java/Spring Boot framework in story")
+        # Default to Java/Spring Boot unless Python is explicitly mentioned
+        if is_python:
+            logger.info("Detected Python framework explicitly in story")
+            return {
+                "api_name": api_name,
+                "api_description": api_description,
+                "base_path": "/api/v1",
+                "framework": "FastAPI",
+                "authentication_method": "None",
+                "database_type": None,
+                "has_database": False,
+                "required_dependencies": ["fastapi", "uvicorn", "pydantic"],
+                "requirements": endpoints,
+                "architecture_notes": "FastAPI REST API",
+                "design_decisions": "Created with fallback plan using Python/FastAPI",
+            }
+        else:
+            logger.info("Defaulting to Java/Spring Boot framework (no explicit Python mention)")
             return {
                 "api_name": api_name,
                 "api_description": api_description,
@@ -246,20 +264,5 @@ class ApiPlannerAgent:
                 "spring_security_config": "JWT with Spring Security 6.x",
                 "requirements": endpoints,
                 "architecture_notes": "Spring Boot REST API with JPA and Spring Security",
-                "design_decisions": "Created with fallback plan for Java/Spring Boot framework",
-            }
-        else:
-            logger.info("Using default Python framework for fallback plan")
-            return {
-                "api_name": api_name,
-                "api_description": api_description,
-                "base_path": "/api/v1",
-                "framework": "FastAPI",
-                "authentication_method": "None",
-                "database_type": None,
-                "has_database": False,
-                "required_dependencies": ["fastapi", "uvicorn", "pydantic"],
-                "requirements": endpoints,
-                "architecture_notes": "Basic REST API with minimal features",
-                "design_decisions": "Created with fallback plan due to insufficient input details",
+                "design_decisions": "Created with fallback plan defaulting to Java/Spring Boot framework",
             }
