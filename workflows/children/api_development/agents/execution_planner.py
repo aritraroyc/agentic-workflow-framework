@@ -52,15 +52,14 @@ class ApiPlannerAgent:
 
             prompt = VALIDATE_REQUIREMENTS_PROMPT.format(story=story)
 
-            response = await asyncio.to_thread(
-                self.llm_client.invoke,
+            # Call LLM async method directly (it's already async)
+            response_text = await self.llm_client.invoke(
                 [{"role": "system", "content": "You are an API requirements validator."},
                  {"role": "user", "content": prompt}]
             )
 
             # Try to parse as JSON
             try:
-                response_text = response.content if hasattr(response, 'content') else str(response)
                 validation_result = json.loads(response_text)
                 is_valid = validation_result.get("is_valid", False)
                 summary = validation_result.get("summary", "Validation completed")
@@ -78,7 +77,6 @@ class ApiPlannerAgent:
                 )
                 is_valid = has_endpoints or has_methods
 
-                response_text = response.content if hasattr(response, 'content') else str(response)
                 return is_valid, response_text
 
         except Exception as e:
@@ -105,8 +103,8 @@ class ApiPlannerAgent:
                 story=story, requirements=json.dumps(requirements, indent=2)
             )
 
-            response = await asyncio.to_thread(
-                self.llm_client.invoke,
+            # Call LLM async method directly (it's already async)
+            response_text = await self.llm_client.invoke(
                 [
                     {
                         "role": "system",
@@ -116,15 +114,14 @@ class ApiPlannerAgent:
                 ]
             )
 
-            # Parse the JSON response
-            try:
-                response_text = response.content if hasattr(response, 'content') else str(response)
-                plan_dict = json.loads(response_text)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse plan JSON: {str(e)}")
-                response_text = response.content if hasattr(response, 'content') else str(response)
-                logger.debug(f"Response was: {response_text[:500]}")
-                # Provide a minimal fallback plan
+            logger.debug(f"Plan response (first 300 chars): {response_text[:300]}")
+
+            # Parse the JSON response using robust extraction
+            plan_dict = self._extract_json_from_response(response_text)
+
+            # If extraction failed, use fallback plan
+            if not plan_dict:
+                logger.warning("Failed to extract valid JSON from LLM response, using fallback plan")
                 plan_dict = self._create_fallback_plan(story, requirements)
 
             # Validate and structure the plan
@@ -170,6 +167,58 @@ class ApiPlannerAgent:
         except Exception as e:
             logger.error(f"Error planning API: {str(e)}", exc_info=True)
             return None
+
+    def _extract_json_from_response(self, response_text: str) -> Dict[str, Any]:
+        """
+        Extract JSON from LLM response, handling various formats.
+
+        Handles:
+        - Pure JSON responses
+        - JSON wrapped in markdown code blocks (```json {...}```)
+        - JSON with surrounding text
+
+        Args:
+            response_text: Raw response from LLM
+
+        Returns:
+            Parsed JSON dictionary, or empty dict if extraction fails
+        """
+        if not response_text or not response_text.strip():
+            logger.debug("Response text is empty")
+            return {}
+
+        # Try direct JSON parsing first
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract JSON from markdown code blocks
+        import re
+        markdown_pattern = r'```(?:json)?\s*\n?([\s\S]*?)\n?```'
+        matches = re.findall(markdown_pattern, response_text)
+        if matches:
+            for match in matches:
+                try:
+                    logger.debug("Found JSON in markdown code block")
+                    return json.loads(match)
+                except json.JSONDecodeError:
+                    continue
+
+        # Try to extract JSON by finding braces
+        start = response_text.find("{")
+        end = response_text.rfind("}") + 1
+
+        if start != -1 and end > start:
+            try:
+                json_str = response_text[start:end]
+                logger.debug("Extracted JSON from response text")
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning(f"Could not extract valid JSON from response (first 200 chars): {response_text[:200]}")
+        return {}
 
     def _is_python_framework(self, story: str) -> bool:
         """
