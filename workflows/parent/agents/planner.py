@@ -188,8 +188,8 @@ class PlannerAgent:
                 requirements_json=requirements_json,
                 constraints_json=constraints_json
             )
-            response = await asyncio.to_thread(self.llm.invoke, [{"role": "user", "content": prompt}])
-            analysis_text: str = response.content if hasattr(response, "content") else str(response)
+            # Directly await async method (not asyncio.to_thread for async functions)
+            analysis_text = await self.llm.invoke([{"role": "user", "content": prompt}])
             logger.info("Story scope analysis complete")
             return analysis_text.strip()
 
@@ -248,10 +248,9 @@ class PlannerAgent:
                     requirements_json=requirements_json,
                     available_workflows=workflow_names
                 )
-                response = await asyncio.to_thread(
-                    self.llm.invoke, [{"role": "user", "content": prompt}]
-                )
-                workflows = self._parse_workflow_list(response)
+                # Directly await async method (not asyncio.to_thread for async functions)
+                response_text = await self.llm.invoke([{"role": "user", "content": prompt}])
+                workflows = self._parse_workflow_list(response_text)
 
             logger.info(f"Required workflows: {workflows}")
             return workflows
@@ -344,8 +343,8 @@ class PlannerAgent:
                 workflow_name=workflow_name,
                 requirements_json=requirements_json
             )
-            response = await asyncio.to_thread(self.llm.invoke, [{"role": "user", "content": prompt}])
-            resp_text: str = response.content if hasattr(response, "content") else str(response)
+            # Directly await async method (not asyncio.to_thread for async functions)
+            resp_text = await self.llm.invoke([{"role": "user", "content": prompt}])
             return resp_text.strip()
 
         except Exception as e:
@@ -510,10 +509,9 @@ class PlannerAgent:
                     task_names=task_names,
                     constraints_json=constraints_json
                 )
-                response = await asyncio.to_thread(
-                    self.llm.invoke, [{"role": "user", "content": prompt}]
-                )
-                llm_risks = self._parse_risk_factors(response)
+                # Directly await async method (not asyncio.to_thread for async functions)
+                response_text = await self.llm.invoke([{"role": "user", "content": prompt}])
+                llm_risks = self._parse_risk_factors(response_text)
                 risk_factors.extend(llm_risks)
 
             logger.info(f"Identified {len(risk_factors)} risk factors")

@@ -250,14 +250,13 @@ class PreprocessorAgent:
             # Create extraction prompt using template
             prompt = PREPROCESSOR_EXTRACTION_TEMPLATE.format(full_content=full_content)
 
-            # Call LLM
-            response = await asyncio.to_thread(
-                self.llm.invoke,
+            # Call LLM (directly await async method, don't use asyncio.to_thread for async functions)
+            response_text = await self.llm.invoke(
                 [{"role": "user", "content": prompt}]
             )
 
-            # Parse response
-            extracted = self._parse_llm_response(response)
+            # Parse response (response_text is already a string from async invoke)
+            extracted = self._parse_llm_response_text(response_text)
             logger.info("Successfully extracted structured data using LLM")
             return extracted
 
@@ -515,22 +514,18 @@ class PreprocessorAgent:
 
         return " | ".join(summary_parts[:2])
 
-    def _parse_llm_response(self, response: Any) -> Dict[str, Any]:
+    def _parse_llm_response_text(self, response_text: str) -> Dict[str, Any]:
         """
-        Parse LLM response into structured data.
+        Parse LLM response text into structured data.
 
         Args:
-            response: Response from LLM
+            response_text: Response text from LLM (already extracted as string)
 
         Returns:
             Dictionary with extracted data
         """
         try:
             import json
-
-            response_text = (
-                response.content if hasattr(response, "content") else str(response)
-            )
 
             # Try to extract JSON from response
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
@@ -543,3 +538,20 @@ class PreprocessorAgent:
         except Exception as e:
             logger.warning(f"Failed to parse LLM response: {str(e)}")
             return {}
+
+    def _parse_llm_response(self, response: Any) -> Dict[str, Any]:
+        """
+        Parse LLM response into structured data.
+
+        Kept for backwards compatibility - converts response object to text then parses.
+
+        Args:
+            response: Response from LLM (object with .content attribute or string)
+
+        Returns:
+            Dictionary with extracted data
+        """
+        response_text = (
+            response.content if hasattr(response, "content") else str(response)
+        )
+        return self._parse_llm_response_text(response_text)
