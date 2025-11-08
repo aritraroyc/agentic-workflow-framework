@@ -15,6 +15,7 @@ Provides:
 import os
 import logging
 import asyncio
+import time
 from typing import Dict, List, Any, Optional
 from abc import ABC, abstractmethod
 
@@ -41,6 +42,41 @@ class BaseLLMClient(ABC):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.client: Optional[Any] = None
+        self.provider_name = self.__class__.__name__.replace("Client", "").lower()
+
+    @staticmethod
+    def _should_log_requests() -> bool:
+        """Check if LLM request/response logging is enabled via environment variable."""
+        return os.getenv("LOG_LLM_REQUESTS", "false").lower() in ("true", "1", "yes")
+
+    @staticmethod
+    def _redact_sensitive_data(content: str) -> str:
+        """
+        Redact sensitive data from content for logging.
+
+        Args:
+            content: Content that may contain sensitive data
+
+        Returns:
+            Content with sensitive data replaced with [REDACTED]
+        """
+        import re
+
+        # Patterns to redact
+        patterns = [
+            # API keys (sk-..., sk-ant-..., etc.)
+            (r'sk-[a-zA-Z0-9\-]*', '[REDACTED_API_KEY]'),
+            # Bearer tokens
+            (r'Bearer\s+[a-zA-Z0-9\-_.]*', 'Bearer [REDACTED_TOKEN]'),
+            # Basic auth
+            (r'Basic\s+[a-zA-Z0-9\+/=]*', 'Basic [REDACTED_AUTH]'),
+        ]
+
+        redacted = content
+        for pattern, replacement in patterns:
+            redacted = re.sub(pattern, replacement, redacted)
+
+        return redacted
 
     @abstractmethod
     def _initialize_client(self) -> Any:
@@ -151,7 +187,17 @@ class OpenAIClient(BaseLLMClient):
         Returns:
             Response content string
         """
+        should_log = self._should_log_requests()
+        start_time = time.time() if should_log else None
+
         try:
+            if should_log:
+                # Log BEGIN marker
+                msg_count = len(messages)
+                logger.info(
+                    f"[LLM_CALL_BEGIN] Provider=openai Model={self.model_name} Messages={msg_count}"
+                )
+
             formatted_messages = self._format_messages(messages)
 
             # Use asyncio.to_thread for blocking operation
@@ -160,9 +206,26 @@ class OpenAIClient(BaseLLMClient):
                 formatted_messages
             )
 
-            return self._extract_response(response)
+            response_text = self._extract_response(response)
+
+            if should_log:
+                # Log END marker with execution time
+                elapsed_time = time.time() - start_time
+                response_length = len(response_text)
+                logger.info(
+                    f"[LLM_CALL_END] Provider=openai Model={self.model_name} "
+                    f"Status=success ExecutionTime={elapsed_time:.2f}s ResponseLength={response_length}chars"
+                )
+
+            return response_text
 
         except Exception as e:
+            if should_log:
+                elapsed_time = time.time() - start_time
+                logger.error(
+                    f"[LLM_CALL_ERROR] Provider=openai Model={self.model_name} "
+                    f"Status=failure ExecutionTime={elapsed_time:.2f}s Error={type(e).__name__}"
+                )
             logger.error(f"OpenAI invocation failed: {str(e)}", exc_info=True)
             raise
 
@@ -217,7 +280,17 @@ class AnthropicClient(BaseLLMClient):
         Returns:
             Response content string
         """
+        should_log = self._should_log_requests()
+        start_time = time.time() if should_log else None
+
         try:
+            if should_log:
+                # Log BEGIN marker
+                msg_count = len(messages)
+                logger.info(
+                    f"[LLM_CALL_BEGIN] Provider=anthropic Model={self.model_name} Messages={msg_count}"
+                )
+
             formatted_messages = self._format_messages(messages)
 
             # Use asyncio.to_thread for blocking operation
@@ -226,9 +299,26 @@ class AnthropicClient(BaseLLMClient):
                 formatted_messages
             )
 
-            return self._extract_response(response)
+            response_text = self._extract_response(response)
+
+            if should_log:
+                # Log END marker with execution time
+                elapsed_time = time.time() - start_time
+                response_length = len(response_text)
+                logger.info(
+                    f"[LLM_CALL_END] Provider=anthropic Model={self.model_name} "
+                    f"Status=success ExecutionTime={elapsed_time:.2f}s ResponseLength={response_length}chars"
+                )
+
+            return response_text
 
         except Exception as e:
+            if should_log:
+                elapsed_time = time.time() - start_time
+                logger.error(
+                    f"[LLM_CALL_ERROR] Provider=anthropic Model={self.model_name} "
+                    f"Status=failure ExecutionTime={elapsed_time:.2f}s Error={type(e).__name__}"
+                )
             logger.error(f"Anthropic invocation failed: {str(e)}", exc_info=True)
             raise
 

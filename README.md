@@ -20,6 +20,7 @@ A LangGraph-based orchestration framework for intelligent agentic workflows in s
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Debugging & Logging](#debugging--logging)
 - [Deployment](#deployment)
 - [Development](#development)
 - [API Reference](#api-reference)
@@ -243,6 +244,45 @@ See the `examples/stories/` directory for example input files:
 - `ui_development.md` - Customer Dashboard UI
 - `api_enhancement.md` - API Enhancement with Webhooks
 - `complex_ecommerce_platform.md` - Multi-workflow project
+
+## 🐛 Debugging & Logging
+
+### LLM Request/Response Logging
+
+Enable detailed logging of all LLM API calls for debugging and performance monitoring:
+
+```bash
+# Enable LLM logging
+LOG_LLM_REQUESTS=true python main.py examples/stories/api_development.md
+```
+
+This will log:
+- **Model name** - Which LLM was called
+- **Execution time** - API call duration
+- **Response size** - Output length in characters
+- **Error details** - If the call failed
+
+Example output:
+```
+[LLM_CALL_BEGIN] Provider=openai Model=gpt-4-turbo-preview Messages=2
+[LLM_CALL_END] Provider=openai Model=gpt-4-turbo-preview Status=success ExecutionTime=2.34s ResponseLength=523chars
+```
+
+**Security**: API keys and tokens are automatically redacted from logs.
+
+For detailed logging configuration, see [LLM Logging Guide](docs/llm_logging.md).
+
+### Log Levels
+
+Control logging verbosity via `LOG_LEVEL` environment variable:
+
+```bash
+# Debug mode - very detailed logs
+LOG_LEVEL=DEBUG python main.py story.md
+
+# Production - only warnings and errors
+LOG_LEVEL=WARNING python main.py story.md
+```
 
 ## 🐳 Deployment
 
