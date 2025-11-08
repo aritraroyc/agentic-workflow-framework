@@ -15,7 +15,7 @@ Provides:
 import os
 import logging
 import asyncio
-from typing import Dict, List, Any, Optional, Union, Type
+from typing import Dict, List, Any, Optional
 from abc import ABC, abstractmethod
 
 from langchain_openai import ChatOpenAI

@@ -14,6 +14,10 @@ Usage:
     python main.py < story.md
 """
 
+# Load environment variables from .env file FIRST
+from dotenv import load_dotenv
+load_dotenv()
+
 import asyncio
 import logging
 import sys
