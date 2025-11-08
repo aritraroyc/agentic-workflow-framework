@@ -244,8 +244,8 @@ def get_llm_client(
 
     Args:
         provider: LLM provider ('openai' or 'anthropic').
-                 If None, uses LLM_PROVIDER env var or defaults to 'anthropic'
-        model_name: Model name. If None, uses provider's default.
+                 If None, uses LLM_PROVIDER env var or defaults to 'openai'
+        model_name: Model name. If None, uses provider-specific env var or provider's default.
         temperature: Temperature for sampling
         max_tokens: Maximum response tokens
 
@@ -256,10 +256,10 @@ def get_llm_client(
         ValueError: If provider is unknown
     """
     if provider is None:
-        provider = os.getenv("LLM_PROVIDER", "anthropic").lower()
+        provider = os.getenv("LLM_PROVIDER", "openai").lower()
 
     if provider == "openai":
-        model = model_name or "gpt-4-turbo-preview"
+        model = model_name or os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
         logger.info(f"Creating OpenAI client with model {model}")
         return OpenAIClient(
             model_name=model,
@@ -267,7 +267,7 @@ def get_llm_client(
             max_tokens=max_tokens,
         )
     elif provider == "anthropic":
-        model = model_name or "claude-3-sonnet-20240229"
+        model = model_name or os.getenv("ANTHROPIC_MODEL", "claude-3-sonnet-20240229")
         logger.info(f"Creating Anthropic client with model {model}")
         return AnthropicClient(
             model_name=model,
