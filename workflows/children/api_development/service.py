@@ -1,7 +1,7 @@
 """
-FastAPI service for API Enhancement workflow (A2A deployment mode).
+FastAPI service for API Development workflow (A2A deployment mode).
 
-This service exposes the APIEnhancementWorkflow as a remote service with:
+This service exposes the ApiDevelopmentWorkflow as a remote service with:
 - /execute endpoint for workflow invocation
 - /metadata endpoint for workflow information
 - /health endpoint for service health checks
@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
-from workflows.children.api_enhancement.workflow import APIEnhancementWorkflow
+from workflows.children.api_development.workflow import ApiDevelopmentWorkflow
 from workflows.parent.state import EnhancedWorkflowState
 from core.llm import get_default_llm_client
 
@@ -29,13 +29,13 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="API Enhancement Workflow Service",
-    description="A2A service for enhancing existing APIs",
+    title="API Development Workflow Service",
+    description="A2A service for developing complete RESTful APIs",
     version="1.0.0",
 )
 
 # Initialize workflow instance
-workflow_instance: Optional[APIEnhancementWorkflow] = None
+workflow_instance: Optional[ApiDevelopmentWorkflow] = None
 
 
 # ============================================================================
@@ -45,11 +45,11 @@ workflow_instance: Optional[APIEnhancementWorkflow] = None
 class ExecuteRequest(BaseModel):
     """Request model for workflow execution."""
 
-    story: str = Field(..., description="The enhancement story/requirements")
+    story: str = Field(..., description="The API development story/requirements")
     story_requirements: Dict[str, Any] = Field(
         default_factory=dict, description="Structured requirements"
     )
-    story_type: str = Field(default="api_enhancement", description="Type of story")
+    story_type: str = Field(default="api_development", description="Type of story")
     preprocessor_output: Dict[str, Any] = Field(
         default_factory=dict, description="Preprocessor output from parent workflow"
     )
@@ -101,9 +101,9 @@ async def initialize_workflow():
     """Initialize the workflow instance."""
     global workflow_instance
     try:
-        logger.info("Initializing API Enhancement workflow instance")
-        workflow_instance = APIEnhancementWorkflow()
-        logger.info("API Enhancement workflow initialized successfully")
+        logger.info("Initializing API Development workflow instance")
+        workflow_instance = ApiDevelopmentWorkflow()
+        logger.info("API Development workflow initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize workflow: {str(e)}")
         raise
@@ -130,12 +130,12 @@ async def ensure_workflow_initialized():
 @app.post(
     "/execute",
     response_model=ExecuteResponse,
-    summary="Execute API Enhancement Workflow",
-    description="Execute the API enhancement workflow with provided requirements",
+    summary="Execute API Development Workflow",
+    description="Execute the API development workflow with provided requirements",
 )
 async def execute(request: ExecuteRequest) -> ExecuteResponse:
     """
-    Execute the API Enhancement workflow.
+    Execute the API Development workflow.
 
     Args:
         request: ExecuteRequest with workflow input
@@ -160,7 +160,7 @@ async def execute(request: ExecuteRequest) -> ExecuteResponse:
     try:
         # Construct parent state for the workflow
         state: EnhancedWorkflowState = {
-            "story": request.story,
+            "input_story": request.story,
             "story_requirements": request.story_requirements,
             "story_type": request.story_type,
             "preprocessor_output": request.preprocessor_output,
@@ -194,7 +194,7 @@ async def execute(request: ExecuteRequest) -> ExecuteResponse:
     "/metadata",
     response_model=MetadataResponse,
     summary="Get Workflow Metadata",
-    description="Retrieve metadata about the API Enhancement workflow",
+    description="Retrieve metadata about the API Development workflow",
 )
 async def get_metadata() -> MetadataResponse:
     """
@@ -295,7 +295,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def root():
     """Service root endpoint."""
     return {
-        "service": "API Enhancement Workflow",
+        "service": "API Development Workflow",
         "version": "1.0.0",
         "status": "running",
         "endpoints": {
@@ -321,6 +321,6 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8001,
+        port=8000,
         log_level="info",
     )
